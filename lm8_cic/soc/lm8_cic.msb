@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><Platform BoardFrequency="25.0" DesignName="lm8_cic" Device="LCMXO2-7000HE" Frequency="0" LatticeFamily="MachXO2" NGO="false" Package="TQFP144" PlatformScheme="Shared Bus (Default)" Processor="LM8" Speed="4" VHDL="true" Ver="2.1" usePLL="false"><Components><Component Arch="ep5g00" Device="All" Help="lm8\document\lm8.htm" LatticeFamily="All" Name="lm8" NumInstance="1" PlatformScheme="Shared Bus (Default)" Processor="LM8" Text="LatticeMico8" Type="CPU" Ver="3.5">
+  <MasterSlavePorts>
+    <MasterPort Name="InstructionPort" Port="I" Prefix="I" Priority="0" Type="INST"/>
+    <MasterPort Name="Data port" Port="D" Prefix="D" Priority="1" Type="DATA"/>
+    <SlavePort Name="Scratchpad" Port="SP" Prefix="SP" Priority="0" Type="DATA" Wishbone="false"><Connections/></SlavePort>
+  </MasterSlavePorts>
+  <ClockPort Description="Clock" Name="clk_i "/>
+  <ResetPort Description="Reset" Name="rst_i "/>
+  <Interrupt Active="high" Name="interrupts" Type="sink" Width="8"/>
+  <Files>
+    <File Name="../components/lm8/rtl/verilog/lm8_include_all.v"/>
+  </Files>
+  <DeviceDriver StructName="LatticeMico8Ctx_t">
+  <DDPreProcessor Name="__MICO_NO_INTERRUPTS__,__MICO_NO_INIT__" Processor="LM8"/>
+    <DDstruct>
+      <DDSElem Format="string" MemberName="name" MemberType="const char*" Processor="LM8" Type="Parm" Value="InstanceName"/>
+    </DDstruct>
+  </DeviceDriver>
+  <PMIDef>
+    <Module Name="pmi_distributed_spram"/>
+    <Module Name="pmi_distributed_dpram"/>
+    <Module Name="pmi_ram_dq_true"/>
+    <Module Name="pmi_ram_dp"/>
+    <Module Name="pmi_ram_dq"/>
+    <Module Name="pmi_rom"/>
+    <Module Name="pmi_addsub"/>
+  </PMIDef>
+  <Parms>
+    <Parm Name="InstanceName" Text="LM8 Instance Name" Type="string" Value="LM8" isiname="true"/>
+    <Parm Name="WB_DAT_WIDTH" OType="Integer" Port="I" Text="WISHBONE Data Bus Width" Type="Integer" Value="8" isparm="false"/>
+    <Parm Name="WB_DAT_WIDTH" OType="Integer" Port="D" Text="WISHBONE Data Bus Width" Type="Integer" Value="8" isparm="false"/>
+    <Parm ListValues="16,32" Name="CFG_REGISTER_COUNT" Text="Number of Registers" Type="list" Value="16" isparm="false"/>
+    <Parm CompilerFlag="-m16regs" Name="CFG_REGISTER_16" NotCondition="CFG_EXT_SIZE_24" Text="16" Type="define" Value="def" isparm="true"/>
+    <Parm Name="CFG_REGISTER_32" Text="32" Type="define" Value="undef" isparm="true"/>
+    <Parm Name="CFG_EBR" Text="Use EBR for Internal Storage Files" Type="define" Value="undef" isparm="true"/>
+    <Parm Name="CFG_DISTRIBUTED_RAM" Text="Use Distributed Ram for Internal Storage Files" Type="define" Value="def" isparm="true"/>
+    <Parm ListValues="4,8,16,32,64" Name="CFG_CALL_STACK" Text="Depth of Call Stack" Type="list" Value="16" isparm="false"/>
+    <Parm CompilerFlag="-mcall-stack-size=8" Name="CFG_CALL_STACK_8" Text="8" Type="define" Value="def" isparm="true"/>
+    <Parm CompilerFlag="-mcall-stack-size=16" Name="CFG_CALL_STACK_16" Text="16" Type="define" Value="undef" isparm="true"/>
+    <Parm CompilerFlag="-mcall-stack-size=32" Name="CFG_CALL_STACK_32" Text="32" Type="define" Value="undef" isparm="true"/>
+    <Parm ListValues="256,512,1024,1536,2048,2560,3072,3584,4096" Name="CFG_PROM_SIZE" Text="PROM Size" Type="list" Value="1024" isparm="true"/>
+    <Parm Extension="*.mem" Name="CFG_PROM_INIT_FILE" NotCondition="CFG_XIP" OType="string" Text="Initialization File Name" Type="file" Value="lm8_cic/fw/prom_init.mem" isparm="true"/>
+    <Parm ListValues="hex,bin" Name="CFG_PROM_INIT_FILE_FORMAT" NotCondition="CFG_XIP" OType="string" Text="File Format" Type="list" Value="hex" isparm="true"/>
+    <Parm Name="CFG_PROM_BASE_ADDRESS" Port="I" Text="PROM Base Address" Type="Integer" Value="0x00000000" isba="true" isparm="false"/>
+    <Parm Name="BASE_ADDRESS" Port="SP" Text="Scratchpad Base Address" Type="Integer" Value="0x00000000" isba="true" isparm="true"/>
+    <Parm Name="SIZE" OType="Integer" Port="SP" Text="Size" Type="Integer" Value="256" isparm="true" issize="true"/>
+    <Parm Name="ADDRESS_LOCK" Port="SP" Text="Lock Address" Type="Define" Value="def"/>
+    <Parm Name="PORT_TYPE" Port="SP" Text="Control Port Address Space" Type="string" Value="Memory"/>
+    <Parm Name="PORT_ENABLE" Port="SP" Text="Internal Scratchpad" Type="define" Value="def" isparm="true"/>
+    <Parm Condition="PORT_ENABLE" Extension="*.mem" Name="CFG_SP_INIT_FILE" OType="string" Text="Initialization File Name" Type="file" Value="lm8_cic/fw/scratchpad_init.mem" isparm="true"/>
+    <Parm Condition="PORT_ENABLE" ListValues="hex,bin" Name="CFG_SP_INIT_FILE_FORMAT" OType="string" Text="File Format" Type="list" Value="hex" isparm="true"/>
+    <Parm ListValues="8,16,32" Name="CFG_EXT_SIZE" OType="integer" Text="Page Pointer Size" Type="list" Value="16" isparm="false"/>
+    <Parm CompilerFlag="-mcmodel=small" Name="CFG_EXT_SIZE_8" Text="256" Type="define" Value="def" isparm="true"/>
+    <Parm CompilerFlag="-mcmodel=medium" Name="CFG_EXT_SIZE_16" Text="64K" Type="define" Value="undef" isparm="true"/>
+    <Parm CompilerFlag="-mcmodel=large" Name="CFG_EXT_SIZE_32" NotCondition="CFG_REGISTER_16" Text="4G" Type="define" Value="undef" isparm="true"/>
+    <Parm Name="CFG_IO_BASE_ADDRESS" Text="I/O Base Address" Type="integer" Value="0x80000000" isparm="false"/>
+    <Parm Name="LATTICE_FAMILY" Text="Lattice Family" Type="string" Value="XP" isparm="true"/>
+    <Parm Name="CFG_ROM_EN" Text="Images in Non-Volatile Memory" Type="define" Value="undef" isparm="true"/>
+    <Parm Condition="CFG_ROM_EN" Name="CFG_ROM_BASE_ADDRESS" Text="Flash Base Address" Type="integer" Value="0x00000000" isparm="true"/>
+    <Parm Condition="CFG_ROM_EN" Name="CFG_XIP" Port="I" Text="Execute-In-Place" Type="define" Value="undef" isparm="true"/>
+    </Parms>
+    <GUIS Columns="2" Help="component_help\lm8.htm" Name="LM8">
+      <GUI Columns="3" Span="2" Text="Number of Registers" Widget="Group"/>
+      <GUI Span="1" Text="         " Widget="Label"/>
+      <GUI Name="CFG_REGISTER_16" Span="1" Widget="Radio"/>
+      <GUI Name="CFG_REGISTER_32" Span="1" Widget="Radio"/>
+      <GUI Widget="EndGroup"/>
+      
+      <GUI Columns="3" Span="2" Text="Call Stack Depth" Widget="Group"/>
+      <GUI Name="CFG_CALL_STACK_8" Span="1" Widget="Radio"/>
+      <GUI Name="CFG_CALL_STACK_16" Span="1" Widget="Radio"/>
+      <GUI Name="CFG_CALL_STACK_32" Span="1" Widget="Radio"/>
+      <GUI Widget="EndGroup"/>
+
+	  <GUI Columns="2" Span="2" Text="Internal Storage Files Setting" Widget="Group"/>
+      <GUI Name="CFG_EBR" Span="1" Widget="Radio"/>
+      <GUI Name="CFG_DISTRIBUTED_RAM" Span="1" Widget="Radio"/>
+      <GUI Widget="EndGroup"/>
+	  
+      <GUI Columns="3" Span="2" Text="Data and I/O Addressable Range" Widget="Group"/>
+      <GUI Name="CFG_EXT_SIZE_8" Span="1" Widget="Radio"/>
+      <GUI Name="CFG_EXT_SIZE_16" Span="1" Widget="Radio"/>
+      <GUI Name="CFG_EXT_SIZE_32" Span="1" Widget="Radio"/>
+      <GUI Name="" Span="1" Widget="Label"/>
+      <GUI Name="BASE_ADDRESS" Port="SP" Span="1" Widget="Text"/>
+      <GUI Name="" Span="1" Widget="Label"/>
+      <GUI Name="CFG_IO_BASE_ADDRESS" Span="1" Widget="Text"/>
+      <GUI Widget="EndGroup"/>
+
+      <GUI Columns="3" Span="2" Text="PROM Settings" Widget="Group"/>
+      <GUI Name="" Span="1" Widget="Label"/>
+      <GUI Name="CFG_PROM_SIZE" Span="1" Widget="Combo"/>
+      <GUI Name="CFG_PROM_INIT_FILE" Span="1" Widget="Browser" Width="40"/>
+      <GUI Name="CFG_PROM_INIT_FILE_FORMAT" Span="1" Widget="Combo"/>
+      <GUI Name="" Span="1" Widget="Label"/>
+      <GUI Widget="EndGroup"/>
+
+      <GUI Columns="3" Span="2" Text="Scratchpad Settings" Widget="Group"/>
+      <GUI Name="PORT_ENABLE" Port="SP" Span="1" Widget="Check"/>
+      <GUI Name="SIZE" Port="SP" Span="1" Widget="Text"/>
+      <GUI Name="CFG_SP_INIT_FILE" Span="1" Widget="Browser1" Width="40"/>
+      <GUI Name="CFG_SP_INIT_FILE_FORMAT" Span="1" Widget="Combo"/>
+      <GUI Name="" Span="1" Widget="Label"/>
+      <GUI Widget="EndGroup"/>
+
+      <GUI Columns="3" Span="2" Text="Flash Deployment Settings" Widget="Group"/>
+      <GUI Name="CFG_ROM_EN" Span="1" Widget="Check"/>
+      <GUI Name="CFG_ROM_BASE_ADDRESS" Span="1" Widget="Text"/>
+      <GUI Name="CFG_XIP" Port="I" Span="1" Widget="Check"/>
+      <GUI Widget="EndGroup"/>
+    </GUIS>
+</Component><Component Device="All" Help="gpio\document\gpio.htm" LatticeFamily="All" Name="gpio" PlatformScheme="Shared Bus (Default)" Processor="LM32,LM8,None" Text="GPIO" Type="IO" Ver="3.5">
+	<MasterSlavePorts>
+		<SlavePort Name="GP I/O Port" Prefix="GPIO" Type="DATA,DMAR,DMAW"><Connections><Connection InstanceName="LM8" MasterPort="D" Priority="0"/></Connections></SlavePort>
+	</MasterSlavePorts>
+	<ClockPort Description="Clock     one" Name="CLK_I"/>
+        <ResetPort Description="Reset" Name="RST_I"/>
+	<Interrupt Active="high" IRQ="" Name="IRQ_O"/>
+	<ExternalPorts>
+		<ExternalPort Condition="INPUT_PORTS_ONLY" Name="PIO_IN" Type="input" Width="DATA_WIDTH"/>
+		<ExternalPort Condition="BOTH_INPUT_AND_OUTPUT" Name="PIO_BOTH_IN" Type="input" Width="INPUT_WIDTH"/>
+		<ExternalPort Condition="OUTPUT_PORTS_ONLY" Name="PIO_OUT" Type="output" Width="DATA_WIDTH"/>
+		<ExternalPort Condition="BOTH_INPUT_AND_OUTPUT" Name="PIO_BOTH_OUT" Type="output" Width="OUTPUT_WIDTH"/>
+		<ExternalPort Condition="TRISTATE_PORTS" Name="PIO_IO" Type="inout" Width="DATA_WIDTH"/>
+	</ExternalPorts>
+        <DeviceDriver InitRoutine="MicoGPIOInit" StructName="MicoGPIOCtx_t">
+                <DDInclude Include="LookupServices.h" Processor="LM32"/>
+                <DDInclude Include="stddef.h" Processor="LM8"/>
+				<DDIRQ IRQAPI="MicoGPIOISR" Include="MicoGPIO.h" Parameter="InstanceName" Processor="LM8"/>
+	            <DDPreProcessor Name="__MICOGPIO_USER_IRQ_HANDLER__" Processor="LM8"/>
+                <DDstruct>
+			<DDSElem Format="string" MemberName="name" MemberType="const char*" Processor="LM32,LM8" Type="Parm" Value="InstanceName"/>
+			<DDSElem MemberName="base" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="BASE_ADDRESS"/>
+			<DDSElem MemberName="base" MemberType="size_t" Processor="LM8" Type="Parm" Value="BASE_ADDRESS"/>
+                        <DDSElem MemberName="lookupReg" MemberType="DeviceReg_t" Processor="LM32" Type="uninitialized" Value=""/>
+                        <DDSElem MemberName="intrLevel" MemberType="unsigned int" Processor="LM32" Type="Interrupt" Value="IRQ_LEVEL"/>
+                        <DDSElem MemberName="intrLevel" MemberType="unsigned char" Processor="LM8" Type="Interrupt" Value="IRQ_LEVEL"/>
+                        <DDSElem MemberName="output_only" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="OUTPUT_PORTS_ONLY"/>
+                        <DDSElem MemberName="output_only" MemberType="unsigned int" Processor="LM8" Type="Parm" Value="OUTPUT_PORTS_ONLY"/>
+                        <DDSElem MemberName="input_only" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="INPUT_PORTS_ONLY"/>
+                        <DDSElem MemberName="input_only" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="INPUT_PORTS_ONLY"/>
+                        <DDSElem MemberName="in_and_out" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="BOTH_INPUT_AND_OUTPUT"/>
+                        <DDSElem MemberName="in_and_out" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="BOTH_INPUT_AND_OUTPUT"/>
+			<DDSElem MemberName="tristate" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="TRISTATE_PORTS"/>
+			<DDSElem MemberName="tristate" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="TRISTATE_PORTS"/>
+                        <DDSElem MemberName="data_width" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="DATA_WIDTH"/>
+                        <DDSElem MemberName="data_width" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="DATA_WIDTH"/>
+                        <DDSElem MemberName="input_width" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="INPUT_WIDTH"/>
+                        <DDSElem MemberName="input_width" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="INPUT_WIDTH"/>
+                        <DDSElem MemberName="output_width" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="OUTPUT_WIDTH"/>
+                        <DDSElem MemberName="output_width" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="OUTPUT_WIDTH"/>
+                        <DDSElem MemberName="intr_enable" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="IRQ_MODE"/>
+                        <DDSElem MemberName="intr_enable" MemberType="unsigned char" Processor="LM8" Type="Parm" Value="IRQ_MODE"/>
+                        <DDSElem MemberName="wb_data_size" MemberType="unsigned int" Processor="LM32" Type="Parm" Value="WB_DAT_WIDTH"/>
+                        <DDSElem MemberName="prev" MemberType="void *" Processor="LM32" Type="uninitialized" Value=""/>
+                        <DDSElem MemberName="next" MemberType="void *" Processor="LM32" Type="uninitialized" Value=""/>
+                </DDstruct>
+        </DeviceDriver>
+      <Files>
+	    <File Name="../components/gpio/rtl/verilog/gpio.v"/>
+	    <File Name="../components/gpio/rtl/verilog/tpio.v"/>
+      </Files>
+	<Parms>
+		<Parm Name="InstanceName" Text="Instance Name" Type="string" Value="io" isiname="true"/>
+		<Parm Name="BASE_ADDRESS" Text="Base Address" Type="Integer" Value="0x80000000" isba="true"/>
+		<Parm Enable="false" Name="SIZE" Text="Size" Type="Integer" Value="16" issize="true"/>
+		<Parm ListValues="8,32" Name="WB_DAT_WIDTH" OType="Integer" Port="GPIO" Text="WISHBONE Data Bus Width" Type="List" Value="8" isparm="true"/>
+		<Parm Name="WB_ADR_WIDTH" OType="Integer" Port="GPIO" Text="WISHBONE Address Bus Width" Type="Integer" Value="4" isparm="true"/>
+                <Parm Name="ADDRESS_LOCK" Text="Lock Address" Type="Define" Value="def"/>
+		<Parm Name="DISABLE" Text="Disable Component" Type="Define" Value="undef" isuse="true"/>
+		<Parm GROUP="XFER_MODE" Name="OUTPUT_PORTS_ONLY" Text="Output Ports Only" Type="define" Value="undef" isparm="true"/>
+		<Parm GROUP="XFER_MODE" Name="INPUT_PORTS_ONLY" Text="Input Ports Only" Type="define" Value="undef" isparm="true"/>
+		<Parm GROUP="XFER_MODE" Name="TRISTATE_PORTS" Text="Tristate Ports" Type="define" Value="undef" isparm="true"/>
+		<Parm GROUP="XFER_MODE" Name="BOTH_INPUT_AND_OUTPUT" Text="Both Input and Output" Type="define" Value="def" isparm="true"/>
+		<Parm Name="DATA_WIDTH" NotCondition="BOTH_INPUT_AND_OUTPUT" Text="Data Width" Type="Integer" Value="1" ValueRange="1-32" isparm="true"/>
+		<Parm Condition="BOTH_INPUT_AND_OUTPUT" Name="INPUT_WIDTH" Text="Input Width" Type="Integer" Value="3" ValueRange="1-32" isparm="true"/>
+		<Parm Condition="BOTH_INPUT_AND_OUTPUT" Name="OUTPUT_WIDTH" Text="Output Width" Type="Integer" Value="1" ValueRange="1-32" isparm="true"/>
+		<Parm Name="IRQ_MODE" Text="IRQ Mode" Type="define" Value="undef" isparm="true"/>
+		<Parm Condition="IRQ_MODE" GROUP="IMODE" Name="LEVEL" Text="Level Sensitive" Type="define" Value="undef" isparm="true"/>
+		<Parm Condition="IRQ_MODE" GROUP="IMODE" Name="EDGE" Text="Edge Sensitive" Type="define" Value="def" isparm="true"/>
+		<Parm Condition="EDGE" Group="EMODE" Name="EITHER_EDGE_IRQ" Text="Either Edge" Type="define" Value="undef" isparm="true"/>
+		<Parm Condition="EDGE" Group="EMODE" Name="POSE_EDGE_IRQ" Text="Postive Edge" Type="define" Value="def" isparm="true"/>
+		<Parm Condition="EDGE" Group="EMODE" Name="NEGE_EDGE_IRQ" Text="Negative Edge" Type="define" Value="undef" isparm="true"/>
+	</Parms>
+      <GUIS Columns="2" Help="component_help\lm32.htm" Name="GPIO">
+            <GUI Name="InstanceName" Span="1" Widget="Text" Width="40"/>
+            <GUI Name="BASE_ADDRESS" Span="1" Widget="Text"/>
+	    
+	    <GUI Columns="1" Name="XFER_MODE" Span="1" Text="Port Types" Widget="Group"/>
+            <GUI Name="OUTPUT_PORTS_ONLY" Span="1" Widget="Radio"/>
+            <GUI Name="INPUT_PORTS_ONLY" Span="1" Widget="Radio"/>
+            <GUI Name="TRISTATE_PORTS" Span="1" Widget="Radio"/>
+            <GUI Name="BOTH_INPUT_AND_OUTPUT" Span="1" Widget="Radio"/>
+	    
+            <GUI Columns="2" Span="1" Text="Input/Output Port Widths" Widget="Group"/>
+            <GUI Name="DATA_WIDTH" Span="1" Widget="Spinner"/>
+            <GUI Name="INPUT_WIDTH" Span="1" Widget="Spinner"/>
+            <GUI Name="OUTPUT_WIDTH" Span="1" Widget="Spinner"/>
+	    	    	    
+            <GUI Columns="3" Name="IRQ_MODE" Span="2" Text="IRQ Mode" Widget="Group"/>
+            <GUI Name="IRQ_MODE" Span="1" Widget="Check"/>
+            <GUI Name="LEVEL" Span="1" Widget="Radio"/>
+            <GUI Name="EDGE" Span="1" Widget="Radio"/>
+	    
+            <GUI Columns="3" Span="2" Text="Edge Response" Widget="Group"/>
+            <GUI Name="EITHER_EDGE_IRQ" Span="1" Widget="Radio"/>
+            <GUI Name="POSE_EDGE_IRQ" Span="1" Widget="Radio"/>
+            <GUI Name="NEGE_EDGE_IRQ" Span="1" Widget="Radio"/>
+	    
+	    <GUI Columns="2" Span="2" Text="WISHBONE Configuration" Widget="Group"/>
+	    <GUI Name="WB_DAT_WIDTH" Port="GPIO" Span="1" Widget="Combo"/>
+     </GUIS>
+</Component></Components></Platform>

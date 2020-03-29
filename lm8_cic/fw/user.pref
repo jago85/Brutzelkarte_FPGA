@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<SYSLIB>
+<MSB_FILE name="lm8_cic.msb" path="../soc"/>
+<MemorySections UCflag="false">
+<Section DEPLOY="yes" Name=".text" Value=""/>
+<Section Name=".rodata" Value=""/>
+<Section Name=".data" Value=""/>
+</MemorySections>
+<LinkerSettings>
+<Param Name="UserDefinedLinkerFile" Value=""/>
+</LinkerSettings>
+<STDIO_Redirection>
+<Param InstanceName="" Name="stdin" Text=""/>
+<Param InstanceName="" Name="stdout" Text=""/>
+<Param InstanceName="" Name="stderr" Text=""/>
+</STDIO_Redirection>
+<LibSettings>
+<Param Name="SyslibOption" Value="on"/>
+<Param Name="USE_SMALL_LIBC" Value="FALSE"/>
+<Param Name="USE_STANDALONE_SMALL_PRINTF" Value="TRUE"/>
+</LibSettings>
+<PREPROCESSOR_IFDEF>
+<Param IFDEF_NAME="__MICO_NO_INTERRUPTS__" Value="on"/>
+<Param IFDEF_NAME="__MICO_NO_INIT__" Value="on"/>
+<Param IFDEF_NAME="__MICOGPIO_USER_IRQ_HANDLER__" Value="off"/>
+</PREPROCESSOR_IFDEF>
+</SYSLIB>
