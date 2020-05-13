@@ -356,7 +356,7 @@ architecture Behavioral of brutzelkarte is
     );
     end component;
     
-    constant FPGA_VERSION   : std_logic_vector(31 downto 0) := x"04000200";
+    constant FPGA_VERSION   : std_logic_vector(31 downto 0) := x"04000201";
     
     constant FLASH_CMD_NONE   : std_logic_vector(1 downto 0) := "00";
     constant FLASH_CMD_READ   : std_logic_vector(1 downto 0) := "01";
@@ -383,6 +383,13 @@ architecture Behavioral of brutzelkarte is
     
     constant CART_BACKUP_REG_ADDR     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0010#);
     constant CART_BACKUP_REG_W1       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_BACKUP_REG_ADDR) + 2);
+    
+    -- Indices of cart control bits
+    constant CART_CONTROL_FLASH_SEL         : natural := 0;
+    constant CART_CONTROL_EEP_ENABLE        : natural := 1;
+    constant CART_CONTROL_EEP_SEL           : natural := 2;
+    constant CART_CONTROL_SRAM_ENABLE       : natural := 3;
+    constant CART_CONTROL_FLASHRAM_ENABLE   : natural := 4;
     
     signal usb_detect_ff1, usb_detect_ff2 : std_logic;
     
@@ -635,8 +642,8 @@ begin
         CLK_I            => CLK_I,
         RST_I            => RST_I,
         
-        EEPROM_ENABLE_I  => cart_control_reg(1),
-        TYPE_I           => cart_control_reg(2),
+        EEPROM_ENABLE_I  => cart_control_reg(CART_CONTROL_EEP_ENABLE),
+        TYPE_I           => cart_control_reg(CART_CONTROL_EEP_SEL),
         MEM_CYC_O        => eep_cyc,
         MEM_STB_O        => eep_stb,
         MEM_WE_O         => eep_we,
@@ -696,9 +703,9 @@ begin
         MEM_DAT_I        => mem_dat_from_ram
     );
     
-    flashram_mem_adr <= std_logic_vector(unsigned(flashram_adr) + unsigned(cart_save_offset & "000000000"));
-    sram_mem_adr <= std_logic_vector(unsigned(sram_adr) + unsigned(cart_save_offset & "000000000"));
-    eep_mem_adr <= std_logic_vector(unsigned(eep_adr) + unsigned(cart_save_offset & "000000000"));
+    flashram_mem_adr <= std_logic_vector(unsigned(flashram_adr) + (unsigned(cart_save_offset) & unsigned'("000000000")));
+    sram_mem_adr <= std_logic_vector(unsigned(sram_adr) + (unsigned(cart_save_offset) & unsigned'("000000000")));
+    eep_mem_adr <= std_logic_vector(unsigned(eep_adr) + (unsigned(cart_save_offset) & unsigned'("000000000")));
     
     mstr_cyc <= uart_cyc & flashram_cyc & sram_cyc & eep_cyc;
     mstr_stb <= uart_stb & flashram_stb & sram_stb & eep_stb;
@@ -920,19 +927,19 @@ begin
     rom_buffer_data <= rom_write_data(15 downto 0) when rom_write_control = '1' else rom_write_data(31 downto 16);
     cart_addr <= cart_addr_latch(31 downto 15) & std_logic_vector(cart_addr_cnt) & "0";
     
-    with cart_control_reg(0) select flash_data <=
+    with cart_control_reg(CART_CONTROL_FLASH_SEL) select flash_data <=
         flash_data_boot when '0',
         flash_data_rom when others;
     
-    with cart_control_reg(0) select flash_cmd_rdy <=
+    with cart_control_reg(CART_CONTROL_FLASH_SEL) select flash_cmd_rdy <=
         flash_cmd_rdy_boot when '0',
         flash_cmd_rdy_rom when others;
     
-    with cart_control_reg(0) select flash_data_valid <=
+    with cart_control_reg(CART_CONTROL_FLASH_SEL) select flash_data_valid <=
         flash_data_valid_boot when '0',
         flash_data_valid_rom when others;
     
-    flashram_reset <= not cart_control_reg(4);
+    flashram_reset <= not cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE);
     
     
     rtc_set_enable <= n64_to_rtc_set_enable or uart_to_rtc_set_enable;
@@ -1043,7 +1050,7 @@ begin
                             end if;
                             if (cart_addr_latch(31 downto 27) = CART_SRAM_BASE_ADDR(31 downto 27)) then
                                 sram_cs <= '1';
-                                if cart_control_reg(3) = '1' then
+                                if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
                                     case cart_addr_latch(26 downto 16) is
                                         when "00000000000" =>
                                             sram_adr(15 downto 14) <= "00";
@@ -1085,9 +1092,9 @@ begin
                     ad_out <= rom_buffer_q;
                 end if;
                 if sram_cs = '1' then
-                    if cart_control_reg(3) = '1' then
+                    if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
                         ad_out <= sram_ad_out;
-                    elsif cart_control_reg(4) ='1' then
+                    elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
                         ad_out <= flashram_ad_out;
                     end if;
                 end if;
@@ -1116,7 +1123,7 @@ begin
                     
                 when s_cmd =>
                     flash_cmd <= FLASH_CMD_READ;
-                    if cart_control_reg(0) = '0' then
+                    if cart_control_reg(CART_CONTROL_FLASH_SEL) = '0' then
                         flash_cmd_en_boot <= '1';
                     else
                         flash_cmd_en_rom <= '1';
@@ -1186,7 +1193,7 @@ begin
                 sram_cyc <= '0';
                 sram_stb <= '0';
                 sram_we <= '0';
-                if sram_cs = '1' and cart_control_reg(3) = '1' then
+                if sram_cs = '1' and cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
                     if read_ff2 = '0' and read_last = '1' then
                         ram_read_start <= '1';
                     end if;
@@ -1254,7 +1261,7 @@ begin
                     case cart_addr is
                         
                     when CART_CONTROL_REG_W1 =>
-                        ad_out(4 downto 0) <= cart_control_reg;
+                        ad_out(cart_control_reg'range) <= cart_control_reg;
                         
                     when CART_VERSION_REG_ADDR =>
                         ad_out <= FPGA_VERSION(31 downto 16);
@@ -1263,10 +1270,10 @@ begin
                         ad_out <= FPGA_VERSION(15 downto 0);
                         
                     when CART_ROMOFFSET_REG_W1 =>
-                        ad_out(5 downto 0) <= cart_rom_offset;
+                        ad_out(cart_rom_offset'range) <= cart_rom_offset;
                         
                     when CART_SAVEOFFSET_REG_W1 =>
-                        ad_out(7 downto 0) <= cart_save_offset;
+                        ad_out(cart_save_offset'range) <= cart_save_offset;
                         
                     when CART_BACKUP_REG_ADDR =>
                         ad_out <= cart_backup(31 downto 16);
@@ -1281,7 +1288,7 @@ begin
                 
                 -- switch the rom back to BOOT on NMI
                 if nmi_ff2 = '0' then
-                    cart_control_reg(0) <= '0';
+                    cart_control_reg(CART_CONTROL_FLASH_SEL) <= '0';
                     cart_rom_offset <= (others => '0');
                 end if;
             end if;

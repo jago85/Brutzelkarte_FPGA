@@ -2,7 +2,7 @@
 <BaliProject version="3.2" title="brutzelkarte" device="LCMXO2-7000HC-6TG144C" default_implementation="impl1">
     <Options/>
     <Implementation title="impl1" dir="impl1" description="impl1" synthesis="synplify" default_strategy="Strategy1">
-        <Options def_top="tb_top" top="top"/>
+        <Options def_top="top" top="top"/>
         <Source name="N64_CIC.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
@@ -20,9 +20,6 @@
         </Source>
         <Source name="top.vhd" type="VHDL" type_short="VHDL">
             <Options top_module="top"/>
-        </Source>
-        <Source name="top_tb.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
         </Source>
         <Source name="uart.vhd" type="VHDL" type_short="VHDL">
             <Options/>
