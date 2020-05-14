@@ -356,7 +356,7 @@ architecture Behavioral of brutzelkarte is
     );
     end component;
     
-    constant FPGA_VERSION   : std_logic_vector(31 downto 0) := x"04000201";
+    constant FPGA_VERSION   : std_logic_vector(31 downto 0) := x"04000300";
     
     constant FLASH_CMD_NONE   : std_logic_vector(1 downto 0) := "00";
     constant FLASH_CMD_READ   : std_logic_vector(1 downto 0) := "01";
@@ -375,14 +375,45 @@ architecture Behavioral of brutzelkarte is
     constant CART_VERSION_REG_ADDR    : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0004#);
     constant CART_VERSION_REG_W1      : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_VERSION_REG_ADDR) + 2);
     
-    constant CART_ROMOFFSET_REG_ADDR  : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0008#);
-    constant CART_ROMOFFSET_REG_W1    : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_ROMOFFSET_REG_ADDR) + 2);
-    
     constant CART_SAVEOFFSET_REG_ADDR : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#000C#);
     constant CART_SAVEOFFSET_REG_W1   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_SAVEOFFSET_REG_ADDR) + 2);
     
     constant CART_BACKUP_REG_ADDR     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0010#);
     constant CART_BACKUP_REG_W1       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_BACKUP_REG_ADDR) + 2);
+    
+    constant CART_MAPPING0_REG_ADDR   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0080#);
+    constant CART_MAPPING0_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING0_REG_ADDR) + 2);
+    constant CART_MAPPING1_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING0_REG_W1) + 4);
+    constant CART_MAPPING2_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING1_REG_W1) + 4);
+    constant CART_MAPPING3_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING2_REG_W1) + 4);
+    constant CART_MAPPING4_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING3_REG_W1) + 4);
+    constant CART_MAPPING5_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING4_REG_W1) + 4);
+    constant CART_MAPPING6_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING5_REG_W1) + 4);
+    constant CART_MAPPING7_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING6_REG_W1) + 4);
+    constant CART_MAPPING8_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING7_REG_W1) + 4);
+    constant CART_MAPPING9_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING8_REG_W1) + 4);
+    constant CART_MAPPING10_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING9_REG_W1) + 4);
+    constant CART_MAPPING11_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING10_REG_W1) + 4);
+    constant CART_MAPPING12_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING11_REG_W1) + 4);
+    constant CART_MAPPING13_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING12_REG_W1) + 4);
+    constant CART_MAPPING14_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING13_REG_W1) + 4);
+    constant CART_MAPPING15_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING14_REG_W1) + 4);
+    constant CART_MAPPING16_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING15_REG_W1) + 4);
+    constant CART_MAPPING17_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING16_REG_W1) + 4);
+    constant CART_MAPPING18_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING17_REG_W1) + 4);
+    constant CART_MAPPING19_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING18_REG_W1) + 4);
+    constant CART_MAPPING20_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING19_REG_W1) + 4);
+    constant CART_MAPPING21_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING20_REG_W1) + 4);
+    constant CART_MAPPING22_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING21_REG_W1) + 4);
+    constant CART_MAPPING23_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING22_REG_W1) + 4);
+    constant CART_MAPPING24_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING23_REG_W1) + 4);
+    constant CART_MAPPING25_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING24_REG_W1) + 4);
+    constant CART_MAPPING26_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING25_REG_W1) + 4);
+    constant CART_MAPPING27_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING26_REG_W1) + 4);
+    constant CART_MAPPING28_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING27_REG_W1) + 4);
+    constant CART_MAPPING29_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING28_REG_W1) + 4);
+    constant CART_MAPPING30_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING29_REG_W1) + 4);
+    constant CART_MAPPING31_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING30_REG_W1) + 4);
     
     -- Indices of cart control bits
     constant CART_CONTROL_FLASH_SEL         : natural := 0;
@@ -390,6 +421,7 @@ architecture Behavioral of brutzelkarte is
     constant CART_CONTROL_EEP_SEL           : natural := 2;
     constant CART_CONTROL_SRAM_ENABLE       : natural := 3;
     constant CART_CONTROL_FLASHRAM_ENABLE   : natural := 4;
+    constant CART_CONTROL_MAPPING_ENABLE    : natural := 5;
     
     signal usb_detect_ff1, usb_detect_ff2 : std_logic;
     
@@ -521,16 +553,20 @@ architecture Behavioral of brutzelkarte is
     signal efb_dat_i : std_logic_vector(7 downto 0);
     signal efb_dat_o : std_logic_vector(7 downto 0);
     
-    signal cart_control_reg : std_logic_vector(4 downto 0);
+    signal cart_control_reg : std_logic_vector(5 downto 0);
         -- [0] Flash select: 0 = BOOT, 1 = ROM
         -- [1] EEP enable: 0 = dis, 1 = en
         -- [2] EEP select: 0 = 4Kb, 1 = 16Kb
         -- [3] SRAM enable: 0 = dis, 1 = en
         -- [4] FLASHRAM enable: 0 = dis, 1 = en
-        
-    signal cart_rom_offset : std_logic_vector(5 downto 0);  -- position of the first ROM address in MiB
+        -- [5] MAPPING enable: 0 = dis, 1 = en
+    
     signal cart_save_offset : std_logic_vector(7 downto 0); -- position of the first SRAM address in KiB
     signal cart_backup : std_logic_vector(31 downto 0); -- backup register for storing application data
+    
+    type cart_mapping_reg_type is array (natural range <>) of std_logic_vector(7 downto 0);
+    signal cart_mapping_regs : cart_mapping_reg_type (0 to 31);
+    signal current_mapping : std_logic_vector(7 downto 0);
     
     signal rtc_time_valid : std_logic;
     signal rtc_time_ack   : std_logic;
@@ -998,7 +1034,6 @@ begin
                 sram_we <= '0';
                 sram_adr <= (others => '0');
                 cart_control_reg <= (others => '0');
-                cart_rom_offset <= (others => '0');
                 cart_save_offset <= (others => '0');
                 cart_backup <= (others => '0');
                 N64_AD_IO <= (others => 'Z');
@@ -1041,6 +1076,7 @@ begin
                         addr_valid <= '1';
                         
                         if addr_valid = '0' then
+                            current_mapping <= cart_mapping_regs(to_integer(unsigned(cart_addr_latch(25 downto 21))));
                             cart_addr_cnt <= unsigned(cart_addr_latch(14 downto 1));
                             if (cart_addr_latch(31 downto 27) = CART_ROM_BASE_ADDR(31 downto 27)) then
                                 rom_cs <= '1';
@@ -1108,7 +1144,13 @@ begin
                 case rom_state is
                 when s_idle =>
                     if rom_cs = '1' then
-                        flash_addr_tmp := std_logic_vector(unsigned(cart_addr_latch(25 downto 2)) + unsigned(cart_rom_offset & "000000000000000000"));
+                        -- flash_addr_tmp := std_logic_vector(unsigned(cart_addr_latch(25 downto 2)) + unsigned(cart_rom_offset & "000000000000000000"));
+                        flash_addr_tmp := cart_addr_latch(25 downto 2);
+                        
+                        -- map the high bits of the address if ROM and MAPPING are enabled
+                        if cart_control_reg(CART_CONTROL_FLASH_SEL) = '1' and cart_control_reg(CART_CONTROL_MAPPING_ENABLE) = '1' then
+                            flash_addr_tmp(23 downto 19) := current_mapping(4 downto 0);
+                        end if;
                         flash_last_addr <= flash_addr_tmp;
                         
                         -- rollover to beginning of page not supported
@@ -1244,15 +1286,108 @@ begin
                         when CART_CONTROL_REG_W1 =>
                             cart_control_reg <= ci_data(cart_control_reg'range);
                             
-                        when CART_ROMOFFSET_REG_W1 =>
-                            cart_rom_offset <= ci_data(cart_rom_offset'range);
-                            
                         when CART_SAVEOFFSET_REG_W1 =>
                             cart_save_offset <= ci_data(cart_save_offset'range);
                             
                         when CART_BACKUP_REG_W1 =>
                             cart_backup <= ci_data;
                             
+                        when CART_MAPPING0_REG_W1  =>
+                            cart_mapping_regs(0) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING1_REG_W1  =>
+                             cart_mapping_regs(1) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING2_REG_W1  =>
+                             cart_mapping_regs(2) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING3_REG_W1  =>
+                             cart_mapping_regs(3) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING4_REG_W1  =>
+                             cart_mapping_regs(4) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING5_REG_W1  =>
+                             cart_mapping_regs(5) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING6_REG_W1  =>
+                             cart_mapping_regs(6) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING7_REG_W1  =>
+                             cart_mapping_regs(7) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING8_REG_W1  =>
+                             cart_mapping_regs(8) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING9_REG_W1  =>
+                             cart_mapping_regs(9) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING10_REG_W1 =>
+                             cart_mapping_regs(10) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING11_REG_W1 =>
+                             cart_mapping_regs(11) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING12_REG_W1 =>
+                             cart_mapping_regs(12) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING13_REG_W1 =>
+                             cart_mapping_regs(13) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING14_REG_W1 =>
+                             cart_mapping_regs(14) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING15_REG_W1 =>
+                             cart_mapping_regs(15) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING16_REG_W1 =>
+                             cart_mapping_regs(16) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING17_REG_W1 =>
+                             cart_mapping_regs(17) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING18_REG_W1 =>
+                             cart_mapping_regs(18) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING19_REG_W1 =>
+                             cart_mapping_regs(19) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING20_REG_W1 =>
+                             cart_mapping_regs(20) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING21_REG_W1 =>
+                             cart_mapping_regs(21) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING22_REG_W1 =>
+                             cart_mapping_regs(22) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING23_REG_W1 =>
+                             cart_mapping_regs(23) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING24_REG_W1 =>
+                             cart_mapping_regs(24) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING25_REG_W1 =>
+                             cart_mapping_regs(25) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING26_REG_W1 =>
+                             cart_mapping_regs(26) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING27_REG_W1 =>
+                             cart_mapping_regs(27) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING28_REG_W1 =>
+                             cart_mapping_regs(28) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING29_REG_W1 =>
+                             cart_mapping_regs(29) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING30_REG_W1 =>
+                             cart_mapping_regs(30) <= ci_data(current_mapping'range);
+                             
+                        when CART_MAPPING31_REG_W1 =>
+                             cart_mapping_regs(31) <= ci_data(current_mapping'range);
+                             
                         when others => null;
                         end case;
                     end if;
@@ -1268,9 +1403,6 @@ begin
                         
                     when CART_VERSION_REG_W1 =>
                         ad_out <= FPGA_VERSION(15 downto 0);
-                        
-                    when CART_ROMOFFSET_REG_W1 =>
-                        ad_out(cart_rom_offset'range) <= cart_rom_offset;
                         
                     when CART_SAVEOFFSET_REG_W1 =>
                         ad_out(cart_save_offset'range) <= cart_save_offset;
@@ -1289,7 +1421,6 @@ begin
                 -- switch the rom back to BOOT on NMI
                 if nmi_ff2 = '0' then
                     cart_control_reg(CART_CONTROL_FLASH_SEL) <= '0';
-                    cart_rom_offset <= (others => '0');
                 end if;
             end if;
         end if;
