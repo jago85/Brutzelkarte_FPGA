@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="uart_fifo" module="uart_fifo" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2020 05 11 16:44:25.088" version="5.8" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="tb_uart_fifo_tmpl.vhd" type="testbench_vhdl" modified="2020 05 11 16:44:23.107"/>
+		<File name="uart_fifo.lpc" type="lpc" modified="2020 05 11 16:44:22.736"/>
+		<File name="uart_fifo.vhd" type="top_level_vhdl" modified="2020 05 11 16:44:23.087"/>
+		<File name="uart_fifo_tmpl.vhd" type="template_vhdl" modified="2020 05 11 16:44:23.093"/>
+  </Package>
+</DiamondModule>

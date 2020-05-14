@@ -5,7 +5,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity uart_access is
 generic (
-    clock_frequency         : positive;
+    clock_frequency         : positive := 100_000_000;
     fpga_Version            : std_logic_vector(31 downto 0) := (others => '0')
 );
 port (
@@ -55,6 +55,14 @@ port (
     RTC_DATE_O              : out std_logic_vector(5 downto 0);
     RTC_MONTH_O             : out std_logic_vector(4 downto 0);
     RTC_YEAR_O              : out std_logic_vector(7 downto 0);
+    
+    -- bypass mode
+    BYP_ENABLE_I            : in std_logic;
+    BYP_TX_VALID_I          : in std_logic;
+    BYP_TX_ACK_O            : out std_logic;
+    BYP_TX_DATA_I           : in std_logic_vector(7 downto 0);
+    BYP_RX_DATA_O           : out std_logic_vector(7 downto 0);
+    BYP_RX_VALID_O          : out std_logic;
     
     USB_DETECT_I            : in std_logic;
     UART_TX_O               : out std_logic;
@@ -167,6 +175,8 @@ architecture Behavioral of uart_access is
         
         s_set_rtc,
         
+        s_byp_mode,
+        
         s_invalid
     );
     
@@ -179,6 +189,11 @@ architecture Behavioral of uart_access is
     signal uart_data_out_stb : std_logic;
     signal uart_data_in_stb : std_logic;
     signal uart_data_in_ack : std_logic;
+    
+    signal stxetx_rx_data_valid : std_logic;
+    signal stxetx_tx_data_valid : std_logic;
+    signal stxetx_tx_data_ack : std_logic;
+    signal stxetx_tx_data : std_logic_vector(7 downto 0);
     
     signal uart_receiving : std_logic;
     signal uart_receiving_last : std_logic;
@@ -258,7 +273,7 @@ begin
         CLK_I        => CLK_I,
         RESET_I      => cmd_fifo_reset,
         DATA_I       => uart_data_out,
-        DATA_VALID_I => uart_data_out_stb,
+        DATA_VALID_I => stxetx_rx_data_valid,
         RECEIVING_O  => uart_receiving,
         DATA_VALID_O => uart_rx_valid
     );
@@ -275,10 +290,31 @@ begin
         DATA_VALID_I => uart_tx_valid,
         DATA_ACK_O   => uart_tx_ack,
         
-        DATA_O       => uart_data_in,
-        DATA_VALID_O => uart_data_in_stb,
-        DATA_ACK_I   => uart_data_in_ack
+        DATA_O       => stxetx_tx_data,
+        DATA_VALID_O => stxetx_tx_data_valid,
+        DATA_ACK_I   => stxetx_tx_data_ack
     );
+    
+    process (uart_com_state, BYP_TX_DATA_I, BYP_TX_VALID_I, uart_data_in_ack, stxetx_tx_data, stxetx_tx_data_valid, uart_data_out, uart_data_out_stb)
+    begin
+        if uart_com_state = s_byp_mode then
+            uart_data_in <= BYP_TX_DATA_I;
+            uart_data_in_stb <= BYP_TX_VALID_I;
+            BYP_TX_ACK_O <= uart_data_in_ack;
+            BYP_RX_DATA_O <= uart_data_out;
+            BYP_RX_VALID_O <= uart_data_out_stb;
+            stxetx_tx_data_ack <= '0';
+            stxetx_rx_data_valid <= '0';
+        else
+            uart_data_in <= stxetx_tx_data;
+            uart_data_in_stb <= stxetx_tx_data_valid;
+            stxetx_tx_data_ack <= uart_data_in_ack;
+            stxetx_rx_data_valid <= uart_data_out_stb;
+            BYP_TX_ACK_O <= '0';
+            BYP_RX_DATA_O <= (others => '0');
+            BYP_RX_VALID_O <='0';
+        end if;
+    end process;
     
     with uart_com_addr(24) select flash_data <=
         FLASH_DATA_ROM_I when '0',
@@ -367,7 +403,9 @@ begin
             case uart_com_state is
             when s_wait_start =>
                 cmd_fifo_rden <= '0';
-                if uart_packet_counter > 0 then
+                if BYP_ENABLE_I = '1' then
+                    uart_com_state <= s_byp_mode;
+                elsif uart_packet_counter > 0 then
                     uart_com_state <= s_get_cmd;
                     cmd_fifo_rden <= '1';
                     uart_packet_ack <= '1';
@@ -728,6 +766,11 @@ begin
                     when others => null;
                     end case;
                     uart_com_counter <= uart_com_counter + 1;
+                end if;
+                
+            when s_byp_mode =>
+                if BYP_ENABLE_I = '0' then
+                    uart_com_state <= s_wait_start;
                 end if;
                 
             when s_invalid =>
