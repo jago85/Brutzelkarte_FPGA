@@ -382,38 +382,6 @@ architecture Behavioral of brutzelkarte is
     constant CART_BACKUP_REG_W1       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_BACKUP_REG_ADDR) + 2);
     
     constant CART_MAPPING0_REG_ADDR   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0080#);
-    constant CART_MAPPING0_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING0_REG_ADDR) + 2);
-    constant CART_MAPPING1_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING0_REG_W1) + 4);
-    constant CART_MAPPING2_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING1_REG_W1) + 4);
-    constant CART_MAPPING3_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING2_REG_W1) + 4);
-    constant CART_MAPPING4_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING3_REG_W1) + 4);
-    constant CART_MAPPING5_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING4_REG_W1) + 4);
-    constant CART_MAPPING6_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING5_REG_W1) + 4);
-    constant CART_MAPPING7_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING6_REG_W1) + 4);
-    constant CART_MAPPING8_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING7_REG_W1) + 4);
-    constant CART_MAPPING9_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING8_REG_W1) + 4);
-    constant CART_MAPPING10_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING9_REG_W1) + 4);
-    constant CART_MAPPING11_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING10_REG_W1) + 4);
-    constant CART_MAPPING12_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING11_REG_W1) + 4);
-    constant CART_MAPPING13_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING12_REG_W1) + 4);
-    constant CART_MAPPING14_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING13_REG_W1) + 4);
-    constant CART_MAPPING15_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING14_REG_W1) + 4);
-    constant CART_MAPPING16_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING15_REG_W1) + 4);
-    constant CART_MAPPING17_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING16_REG_W1) + 4);
-    constant CART_MAPPING18_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING17_REG_W1) + 4);
-    constant CART_MAPPING19_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING18_REG_W1) + 4);
-    constant CART_MAPPING20_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING19_REG_W1) + 4);
-    constant CART_MAPPING21_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING20_REG_W1) + 4);
-    constant CART_MAPPING22_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING21_REG_W1) + 4);
-    constant CART_MAPPING23_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING22_REG_W1) + 4);
-    constant CART_MAPPING24_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING23_REG_W1) + 4);
-    constant CART_MAPPING25_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING24_REG_W1) + 4);
-    constant CART_MAPPING26_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING25_REG_W1) + 4);
-    constant CART_MAPPING27_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING26_REG_W1) + 4);
-    constant CART_MAPPING28_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING27_REG_W1) + 4);
-    constant CART_MAPPING29_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING28_REG_W1) + 4);
-    constant CART_MAPPING30_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING29_REG_W1) + 4);
-    constant CART_MAPPING31_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_MAPPING30_REG_W1) + 4);
     
     -- Indices of cart control bits
     constant CART_CONTROL_FLASH_SEL         : natural := 0;
@@ -1010,6 +978,7 @@ begin
     
     process (CLK_I)
         variable flash_addr_tmp : std_logic_vector(23 downto 0);
+        variable mapping_index_tmp : integer range 0 to 31;
     begin
         if rising_edge(CLK_I) then
             if RST_I = '1' then
@@ -1291,105 +1260,18 @@ begin
                             
                         when CART_BACKUP_REG_W1 =>
                             cart_backup <= ci_data;
-                            
-                        when CART_MAPPING0_REG_W1  =>
-                            cart_mapping_regs(0) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING1_REG_W1  =>
-                             cart_mapping_regs(1) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING2_REG_W1  =>
-                             cart_mapping_regs(2) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING3_REG_W1  =>
-                             cart_mapping_regs(3) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING4_REG_W1  =>
-                             cart_mapping_regs(4) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING5_REG_W1  =>
-                             cart_mapping_regs(5) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING6_REG_W1  =>
-                             cart_mapping_regs(6) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING7_REG_W1  =>
-                             cart_mapping_regs(7) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING8_REG_W1  =>
-                             cart_mapping_regs(8) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING9_REG_W1  =>
-                             cart_mapping_regs(9) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING10_REG_W1 =>
-                             cart_mapping_regs(10) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING11_REG_W1 =>
-                             cart_mapping_regs(11) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING12_REG_W1 =>
-                             cart_mapping_regs(12) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING13_REG_W1 =>
-                             cart_mapping_regs(13) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING14_REG_W1 =>
-                             cart_mapping_regs(14) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING15_REG_W1 =>
-                             cart_mapping_regs(15) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING16_REG_W1 =>
-                             cart_mapping_regs(16) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING17_REG_W1 =>
-                             cart_mapping_regs(17) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING18_REG_W1 =>
-                             cart_mapping_regs(18) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING19_REG_W1 =>
-                             cart_mapping_regs(19) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING20_REG_W1 =>
-                             cart_mapping_regs(20) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING21_REG_W1 =>
-                             cart_mapping_regs(21) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING22_REG_W1 =>
-                             cart_mapping_regs(22) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING23_REG_W1 =>
-                             cart_mapping_regs(23) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING24_REG_W1 =>
-                             cart_mapping_regs(24) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING25_REG_W1 =>
-                             cart_mapping_regs(25) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING26_REG_W1 =>
-                             cart_mapping_regs(26) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING27_REG_W1 =>
-                             cart_mapping_regs(27) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING28_REG_W1 =>
-                             cart_mapping_regs(28) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING29_REG_W1 =>
-                             cart_mapping_regs(29) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING30_REG_W1 =>
-                             cart_mapping_regs(30) <= ci_data(current_mapping'range);
-                             
-                        when CART_MAPPING31_REG_W1 =>
-                             cart_mapping_regs(31) <= ci_data(current_mapping'range);
                              
                         when others => null;
                         end case;
+                        
+                        -- writes to mapping address space (128 B)
+                        if cart_addr(31 downto 7) = CART_MAPPING0_REG_ADDR(31 downto 7) and cart_addr(1) = '1' then
+                            -- cart_addr(6 downto 2) is the index
+                            -- 5 bits => 31 regs
+                            mapping_index_tmp := to_integer(unsigned(cart_addr(6 downto 2)));
+                            cart_mapping_regs(mapping_index_tmp) <= ci_data(current_mapping'range);
+                        end if;
+                        
                     end if;
                     
                     ad_out <= (others => '0');
