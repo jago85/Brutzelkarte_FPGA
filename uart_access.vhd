@@ -64,6 +64,8 @@ port (
     BYP_RX_DATA_O           : out std_logic_vector(7 downto 0);
     BYP_RX_VALID_O          : out std_logic;
     
+    UART_TX_ACTIVE_O        : out std_logic;
+    
     USB_DETECT_I            : in std_logic;
     UART_TX_O               : out std_logic;
     UART_RX_I               : in std_logic
@@ -96,7 +98,7 @@ architecture Behavioral of uart_access is
             data_stream_in_ack  :   out     std_logic := '0';
             data_stream_out     :   out     std_logic_vector(7 downto 0);
             data_stream_out_stb :   out     std_logic;
-            tx_active           :   out std_logic;
+            tx_active           :   out     std_logic;
             tx                  :   out     std_logic;
             rx                  :   in      std_logic
         );
@@ -261,7 +263,7 @@ begin
         data_stream_in_ack  => uart_data_in_ack,
         data_stream_out     => uart_data_out,
         data_stream_out_stb => uart_data_out_stb,
-        tx_active           => open,
+        tx_active           => UART_TX_ACTIVE_O,
         tx                  => uart_tx_line,
         rx                  => UART_RX_I
     );
