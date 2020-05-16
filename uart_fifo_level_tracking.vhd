@@ -11,6 +11,7 @@ port (
     WR_EN_I         : in std_logic;
     DATA_I          : in std_logic_vector(7 downto 0);
     Q_O             : out std_logic_vector(7 downto 0);
+    ALMOST_EMPTY_O  : out std_logic;
     EMPTY_O         : out std_logic;
     ALMOST_FULL_O   : out std_logic;
     FULL_O          : out std_logic;
@@ -35,6 +36,7 @@ architecture Behavioral of uart_fifo_level_tracking is
     
     signal fill_counter : unsigned(10 downto 0);
     signal fifo_empty : std_logic;
+    signal fifo_almost_empty : std_logic;
     signal fifo_full : std_logic;
     signal fifo_almost_full : std_logic;
 
@@ -52,12 +54,13 @@ begin
             Q(7 downto 0)    => Q_O, 
             Empty            => fifo_empty, 
             Full             => fifo_full, 
-            AlmostEmpty      => open, 
+            AlmostEmpty      => fifo_almost_empty, 
             AlmostFull       => fifo_almost_full);
             
     FREE_COUNT_O <= std_logic_vector(to_unsigned(FIFO_SIZE, fill_counter'length) - fill_counter);
     FULL_COUNT_O <= std_logic_vector(fill_counter);
     EMPTY_O <= fifo_empty;
+    ALMOST_EMPTY_O <= fifo_almost_empty;
     FULL_O <= fifo_full;
     ALMOST_FULL_O <= fifo_almost_full;
     

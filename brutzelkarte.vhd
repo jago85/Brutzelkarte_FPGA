@@ -329,6 +329,7 @@ architecture Behavioral of brutzelkarte is
         WR_EN_I         : in std_logic;
         DATA_I          : in std_logic_vector(7 downto 0);
         Q_O             : out std_logic_vector(7 downto 0);
+        ALMOST_EMPTY_O  : out std_logic;
         EMPTY_O         : out std_logic;
         ALMOST_FULL_O   : out std_logic;
         FULL_O          : out std_logic;
@@ -451,7 +452,8 @@ architecture Behavioral of brutzelkarte is
     -- Indices of cart uart tx status bits
     constant CART_UART_TX_STATUS_NF         : natural := 0;
     constant CART_UART_TX_STATUS_E          : natural := 1;
-    constant CART_UART_TX_STATUS_ACT        : natural := 2;
+    constant CART_UART_TX_STATUS_HE         : natural := 2;
+    constant CART_UART_TX_STATUS_ACT        : natural := 3;
     
     -- Indices of cart uart rx status bits
     constant CART_UART_RX_STATUS_NE         : natural := 0;
@@ -621,6 +623,7 @@ architecture Behavioral of brutzelkarte is
     signal uart_txfifo_q : std_logic_vector(7 downto 0);
     signal uart_txfifo_empty : std_logic;
     signal uart_txfifo_full : std_logic;
+    signal uart_txfifo_almost_empty : std_logic;
     signal uart_txfifo_free_count : std_logic_vector(10 downto 0);
     
     signal uart_tx_dma_active : std_logic;
@@ -960,6 +963,7 @@ begin
         WR_EN_I         => uart_txfifo_wren,
         DATA_I          => cart_uart_txd_reg,
         Q_O             => uart_txfifo_q,
+        ALMOST_EMPTY_O  => uart_txfifo_almost_empty,
         EMPTY_O         => uart_txfifo_empty,
         ALMOST_FULL_O   => open,
         FULL_O          => uart_txfifo_full,
@@ -1475,6 +1479,7 @@ begin
                     when CART_UART_TX_STATUS_REG_W1 =>
                         ad_out(CART_UART_TX_STATUS_NF) <= not uart_txfifo_full;
                         ad_out(CART_UART_TX_STATUS_E) <= uart_txfifo_empty;
+                        ad_out(CART_UART_TX_STATUS_HE) <= uart_txfifo_almost_empty;
                         ad_out(CART_UART_TX_STATUS_ACT) <= uart_tx_active;
                         
                     when CART_UART_TX_FREE_REG_W1 =>

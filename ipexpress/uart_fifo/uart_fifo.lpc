@@ -16,8 +16,8 @@ CoreRevision=5.8
 ModuleName=uart_fifo
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=05/11/2020
-Time=16:44:22
+Date=05/16/2020
+Time=18:47:28
 
 [Parameters]
 Verilog=0
@@ -37,7 +37,7 @@ CtrlByRdEn=0
 ClockEn=0
 EmpFlg=1
 PeMode=Static - Single Threshold
-PeAssert=10
+PeAssert=512
 PeDeassert=12
 FullFlg=1
 PfMode=Static - Single Threshold
@@ -50,4 +50,4 @@ WDataCount=0
 EnECC=0
 
 [Command]
-cmd_line= -w -n uart_fifo -lang vhdl -synth synplify -bus_exp 7 -bb -arch xo2c00 -type ebfifo -depth 1024 -width 8 -rwidth 8 -no_enable -pe 10 -pf 512
+cmd_line= -w -n uart_fifo -lang vhdl -synth synplify -bus_exp 7 -bb -arch xo2c00 -type ebfifo -depth 1024 -width 8 -rwidth 8 -no_enable -pe 512 -pf 512
