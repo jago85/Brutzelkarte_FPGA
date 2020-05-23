@@ -46,6 +46,7 @@ port (
     
     -- USB-UART
     USB_DETECT_I        : in std_logic;
+    UART_RTS_I          : in std_logic;
     UART_RX_I           : in std_logic;
     UART_TX_O           : out std_logic;
     
@@ -316,6 +317,7 @@ architecture Behavioral of brutzelkarte is
         UART_TX_ACTIVE_O        : out std_logic;
         
         USB_DETECT_I            : in std_logic;
+        UART_RTS_I              : in std_logic;
         UART_TX_O               : out std_logic;
         UART_RX_I               : in std_logic
     );
@@ -941,6 +943,7 @@ begin
         UART_TX_ACTIVE_O        => uart_tx_active,
         
         USB_DETECT_I            => usb_detect_ff2,
+        UART_RTS_I              => UART_RTS_I,
         UART_TX_O               => UART_TX_O,
         UART_RX_I               => UART_RX_I
     );

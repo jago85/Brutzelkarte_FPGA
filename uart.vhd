@@ -43,6 +43,7 @@ entity uart is
         data_stream_out     :   out std_logic_vector(7 downto 0);
         data_stream_out_stb :   out std_logic;
         tx_active           :   out std_logic;
+        rts                 :   in  std_logic;
         tx                  :   out std_logic;
         rx                  :   in  std_logic
     );
@@ -92,6 +93,7 @@ architecture rtl of uart is
     signal uart_rx_state : uart_rx_states := rx_get_start_bit;
     signal uart_rx_bit : std_logic := '1';
     signal uart_rx_data_vec : std_logic_vector(7 downto 0) := (others => '0');
+    signal uart_rts_sr : std_logic_vector(1 downto 0) := (others => '1');
     signal uart_rx_data_sr : std_logic_vector(1 downto 0) := (others => '1');
     signal uart_rx_filter : unsigned(1 downto 0) := (others => '1');
     signal uart_rx_count : unsigned(2 downto 0) := (others => '0');
@@ -140,10 +142,14 @@ begin
         if rising_edge(clock) then
             if reset = '1' then
                 uart_rx_data_sr <= (others => '1');
+                uart_rts_sr <= (others => '1');
             else
                 -- if rx_baud_tick = '1' then
                     uart_rx_data_sr(0) <= rx;
                     uart_rx_data_sr(1) <= uart_rx_data_sr(0);
+                    
+                    uart_rts_sr(0) <= rts;
+                    uart_rts_sr(1) <= uart_rts_sr(0);
                 -- end if;
             end if;
         end if;
@@ -278,7 +284,7 @@ begin
                 case uart_tx_state is
                     when tx_send_start_bit =>
                         tx_active <= '0';
-                        if tx_baud_tick = '1' and data_stream_in_stb = '1' then
+                        if tx_baud_tick = '1' and data_stream_in_stb = '1' and uart_rts_sr(1) = '0' then
                             tx_active <= '1';
                             uart_tx_data  <= '0';
                             uart_tx_state <= tx_send_data;
