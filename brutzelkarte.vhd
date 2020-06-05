@@ -184,7 +184,6 @@ architecture Behavioral of brutzelkarte is
            N64_WR_LAST_I    : in  std_logic;
            N64_AD_I         : in  std_logic_vector(15 downto 0);
            N64_AD_O         : out std_logic_vector(15 downto 0);
-           USE_FLASH_O      : out std_logic;
            
            MEM_CYC_O        : out std_logic;
            MEM_STB_O        : out std_logic;
@@ -692,7 +691,6 @@ begin
         N64_WR_LAST_I    => write_last,
         N64_AD_I         => ad_ff2,
         N64_AD_O         => flashram_ad_out,
-        USE_FLASH_O      => open,
         
         MEM_CYC_O        => flashram_cyc,
         MEM_STB_O        => flashram_stb,

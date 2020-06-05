@@ -19,7 +19,6 @@ Port (
        N64_WR_LAST_I    : in  std_logic;
        N64_AD_I         : in  std_logic_vector(15 downto 0);
        N64_AD_O         : out std_logic_vector(15 downto 0);
-       USE_FLASH_O      : out std_logic;
        
        MEM_CYC_O        : out std_logic;
        MEM_STB_O        : out std_logic;
@@ -68,8 +67,6 @@ architecture Behavioral of N64_FlashRam is
     constant STATUS_READ_END : std_logic_vector(15 downto 0) := x"0080";
 
     constant FLASH_ID : std_logic_vector(63 downto 0) := x"001D00C280011111"; --MXL1101
-
-    signal flash_used : std_logic := '0';
 
     signal cmd_reg : std_logic_vector(31 downto 0) := (others => '0');
     signal cmd_stb : std_logic;
@@ -129,22 +126,9 @@ begin
                                and (N64_WR_I = '1')
                          else '0';
 
-    USE_FLASH_O <= flash_used;
-
-    FLASH_USED_PROC : process (CLK_I)
-    begin
-        if rising_edge(CLK_I) then
-            if (RST_I = '1') then
-                flash_used <= '0';
-            else
-                if ((N64_ADDR_VALID_I = '1') and (N64_ADDR_I = x"08010000")) then
-                    flash_used <= '1';
-                end if;
-            end if;
-        end if;
-    end process FLASH_USED_PROC;
-
-    cmd_stb <= '1' when (N64_ADDR_I = x"08010002") and (N64_ADDR_LATCH_I(31 downto 16) = x"0801") and (N64_WR_I = '0') and (N64_WR_LAST_I = '1') else '0';
+    -- cmd_stb is '1' at the end of the second write cycle
+    -- use the addr latch to compare the high address to be sure the write was initiated here
+    cmd_stb <= '1' when (N64_ADDR_LATCH_I(31 downto 16) = x"0801") and (N64_ADDR_I(15 downto 0) = x"0002") and (N64_WR_I = '0') and (N64_WR_LAST_I = '1') else '0';
 
     COMMAND_REG_PROC : process (CLK_I)
     begin
@@ -304,6 +288,8 @@ begin
             if RST_I = '1' then
                 next_status <= STATUS_READ_END & STATUS_READ_END & STATUS_READ_END & STATUS_READ_END;
             else
+                
+                -- prepare the next status word
                 case flash_state is
                 
                 when s_idle =>
@@ -337,7 +323,9 @@ begin
                     
                 when others => null;
                 end case;
-            
+                
+                -- apply the status while no transaction is active
+                -- status does not change during a transaction
                 if N64_ADDR_VALID_I = '0' then
                     status <= next_status;
                 end if;
@@ -370,8 +358,14 @@ begin
     MEM_CYC_O <= mem_cyc;
     MEM_STB_O <= mem_cyc;
     
+    -- 128 KiB of readable address space -> 0b0000 1000 0000 000x xxxx xxxx xxxx xxxx
+    --                                       | 0x0400, 15 bits  |
     is_read_addr <=  '1' when (N64_ADDR_VALID_I = '1') and (N64_ADDR_I(31 downto 17) = std_logic_vector(to_unsigned(16#0400#, 15))) else '0';
+    
+    -- write buffer 128 bytes => 64 words -> write is complete at 63 (0x003F)
     write_done <= '1' when (flash_state = s_writing and counter = x"003F") and MEM_ACK_I = '1' else '0';
+    
+    -- erase size is 16 KiB => 8192 words -> erase is complete at 8191 (0x1FFF)
     erase_done <= '1' when (flash_state = s_erasing and ((counter = x"FFFF" and erase_chip = '1') or ((counter(12 downto 0) = x"1FFF" and erase_chip = '0'))) and MEM_ACK_I = '1') else '0';
     
     SRAM_PROC : process (CLK_I)
@@ -403,7 +397,7 @@ begin
                     end if;
                 
                 when s_writing_start =>
-                    -- read the current value
+                    -- read the current value (it's OR-ed with the written data later)
                     mem_cyc <= '1';
                     MEM_WE_O <= '0';
                     MEM_ADDR_O <= write_offset & std_logic_vector(counter(5 downto 0));
@@ -421,7 +415,7 @@ begin
                         MEM_WE_O <= '1';
                         MEM_ADDR_O <= write_offset & std_logic_vector(counter(5 downto 0));
                         
-                        -- bits can be set from 1 to 0 only
+                        -- bits can be set from 1 to 0 only (OR previously read data with the written data)
                         MEM_DAT_O <= read_data and write_buf_datab;
                     end if;
                     
@@ -429,6 +423,8 @@ begin
                         mem_cyc <= '0';
                         MEM_WE_O <= '0';
                         counter <= counter + 1;
+                        
+                        -- clears the write buffer with 0xFFFF at the current position
                         write_buf_web <= '1';
                     end if;
                     
