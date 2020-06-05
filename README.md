@@ -12,7 +12,7 @@ Address: 0x18000000
 ## Cart Control Register
 Offset: 0x00000000  
 Effective Address: 0x18000000  
-Access: Read /Write  
+Access: Read / Write  
 
 Description:  
 Controls the emulation features of the cart.
@@ -46,7 +46,7 @@ The version of the programable logic.
 ## ~~ROM Offset Register~~
 ~~Offset: 0x00000008  
 Effective Address: 0x18000008  
-Access: Read /Write  
+Access: Read / Write  
 Description:  
 Offset for read address in ROM FLASH~~  
 
@@ -55,7 +55,7 @@ Offset for read address in ROM FLASH~~
 ## Save Offset Register
 Offset: 0x0000000C  
 Effective Address: 0x1800000C  
-Access: Read /Write  
+Access: Read / Write  
 
 Description:  
 Offset of the save file in the SRAM in 1KiB blocks.
@@ -63,7 +63,7 @@ Offset of the save file in the SRAM in 1KiB blocks.
 ## Backup Register
 Offset: 0x00000010  
 Effective Address: 0x18000010  
-Access: Read /Write  
+Access: Read / Write  
 
 Description:  
 32 bit of user defined backup data. Can be used to remember the cart state during reset.
@@ -114,44 +114,27 @@ Number of characters in the RX FIFO.
 |--|--|
 | Reserved | Rx ready count |
 
-## UART TXD Register
+## UART DATA Register
 Offset: 0x00000110  
 Effective Address: 0x18000020  
-Access: Write Only  
+Access: Read/ Write  
 
 Description:  
-Writes one character to the TX FIFO.
+Writes put one character to the TX FIFO. Reads get one character from the RX FIFO.
 
-## UART RXD Register
-Offset: 0x00000120  
-Effective Address: 0x18000028  
-Access: Read Only
-
-Description:  
-Reads one character from the RX FIFO.
-
-## UART TX DMA Space
+## UART DMA Space
 Offset: 0x00001000  
 Size: 1K  
 Effective Addresses: 0x18001000 - 0x180013FF  
-Access: Write Only
+Access: Read / Write
 
 Description:  
-Every write to this address space writes to the TX FIFO. In theory the cart supports 16 bit writes (2 characters). The machine supports only 64 bit aligned DMA accesses in 64 bit blocks.
-
-## UART RX DMA Space
-Offset: 0x00001400  
-Size: 1K  
-Effective Addresses: 0x18001400 - 0x180017FF  
-Access: Read Only
-
-Description:  
-Every read from this address space reads from the RX FIFO. In theory the cart supports 16 bit reads (2 characters). The machine supports only 64 bit aligned DMA accesses in 64 bit blocks.
+Every write to this address space writes to the TX FIFO. Every read from this address space reads from the RX FIFO. In theory the cart supports 16 bit reads / writes (2 characters). The machine supports only 64 bit aligned DMA accesses in 64 bit blocks.
 
 ## ROM Mapping Register Set
 Offset: 0x00000080  
 Effective Address: 0x18000080  
-Access: Read /Write  
+Access: Read / Write  
 
 Description:  
 Set of 32 registers. Each registers maps 2 MiB of ROM address space to the ROM Flash. 512 MiB of FLASH can be addressed in 2 MiB blocks. This allows to split ROMs into parts of 2 MiB. If the cart memory is fragmented due to deletion of smaller ROMs, the free space can be used for bigger ROMs without having to completely rewriting the FLASH.  

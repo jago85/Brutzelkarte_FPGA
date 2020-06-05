@@ -424,15 +424,11 @@ architecture Behavioral of brutzelkarte is
     constant CART_UART_RX_READY_REG_ADDR  : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#001C#);
     constant CART_UART_RX_READY_REG_W1    : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_RX_READY_REG_ADDR) + 2);
     
-    constant CART_UART_TXD_REG_ADDR       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0020#);
-    constant CART_UART_TXD_REG_W1         : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_TXD_REG_ADDR) + 2);
-    
-    constant CART_UART_RXD_REG_ADDR       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0028#);
-    constant CART_UART_RXD_REG_W1         : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_RXD_REG_ADDR) + 2);
+    constant CART_UART_DATA_REG_ADDR       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0020#);
+    constant CART_UART_DATA_REG_W1         : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_DATA_REG_ADDR) + 2);
     
     -- TX/RX data DMA address space
-    constant CART_UART_TXD_DMA_ADDR       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#1000#);
-    constant CART_UART_RXD_DMA_ADDR       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#1400#);
+    constant CART_UART_DMA_ADDR           : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#1000#);
     
     -- Indices of cart control bits
     constant CART_CONTROL_FLASH_SEL         : natural := 0;
@@ -1426,15 +1422,15 @@ begin
                                 uart_rxfifo_overflow <= '0';
                             end if;
                             
-                        when CART_UART_TXD_REG_W1 =>
+                        when CART_UART_DATA_REG_W1 =>
                             cart_uart_txd_reg <= ci_data(cart_uart_txd_reg'range);
                             uart_txfifo_wren <= '1';
                         
                         when others => null;
                         end case;
                         
-                        -- writes to TXD DMA address space (1 KiB) trigger a write to the TX FIFO
-                        if cart_addr(31 downto 10) = CART_UART_TXD_DMA_ADDR(31 downto 10) and cart_addr(1) = '1' then
+                        -- writes to UART DMA address space (1 KiB) trigger a write to the TX FIFO
+                        if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) and cart_addr(1) = '1' then
                             cart_uart_txd_dma_reg <= ci_data;
                             uart_tx_dma_count <= "11";
                             uart_tx_dma_active <= '1';
@@ -1479,7 +1475,7 @@ begin
                     when CART_UART_RX_READY_REG_W1 =>
                         ad_out(uart_rxfifo_ready_count'range) <= uart_rxfifo_ready_count;
                             
-                    when CART_UART_RXD_REG_W1 =>
+                    when CART_UART_DATA_REG_W1 =>
                         -- trigger fifo read
                         if read_ff2 = '1' and read_last = '0' then
                             uart_rxfifo_rden <= '1';
@@ -1489,7 +1485,7 @@ begin
                     when others => null;
                     end case;
                     
-                    if cart_addr(31 downto 10) = CART_UART_RXD_DMA_ADDR(31 downto 10) then
+                    if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) then
                         ad_out <= uart_rx_dma_buf;
                     end if;
                     
@@ -1548,7 +1544,8 @@ begin
                 
                 case uart_rxfifo_read_state is
                 when s_uart_rxfifo_read_idle =>
-                    if cart_addr(31 downto 10) = CART_UART_RXD_DMA_ADDR(31 downto 10) then
+                    if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) then
+                        -- read to UART DMA address space (1 KiB) trigger a read from the RX FIFO
                         if read_ff2 = '1' and read_last = '0' then
                             uart_rxfifo_read_state <= s_uart_rxfifo_read_data0;
                             uart_rxfifo_rden <= '1';
