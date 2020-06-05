@@ -77,7 +77,6 @@ architecture Behavioral of N64_FlashRam is
     signal write_buf_datab : std_logic_vector(15 downto 0);
     signal write_buf_wea : std_logic;
     signal write_buf_web : std_logic;
-    signal write_buf_addrb : std_logic_vector(5 downto 0);
     signal read_data : std_logic_vector(15 downto 0);
     
     signal mem_cyc : std_logic;
@@ -108,7 +107,7 @@ begin
         DataInA(15 downto 0) => N64_AD_I,
         DataInB(15 downto 0) => x"ffff",
         AddressA(5 downto 0) => N64_ADDR_I(6 downto 1),
-        AddressB(5 downto 0) => write_buf_addrb,
+        AddressB(5 downto 0) => std_logic_vector(counter(5 downto 0)),
         ClockA               => CLK_I,
         ClockB               => CLK_I,
         ClockEnA             => '1',
@@ -379,7 +378,6 @@ begin
                 counter <= (others => '0');
                 read_data_valid <= (others => '0');
                 write_buf_web <= '0';
-                write_buf_addrb <= (others => '0');
             else
                 read_data_valid <= "0" & read_data_valid(read_data_valid'high downto 1);
                 write_buf_web <= '0';
@@ -409,7 +407,6 @@ begin
                     read_data_valid <= "100";
                 
                 when s_writing =>
-                    write_buf_addrb <= std_logic_vector(counter(5 downto 0));
                     if read_data_valid(0) = '1' then
                         mem_cyc <= '1';
                         MEM_WE_O <= '1';
@@ -417,15 +414,15 @@ begin
                         
                         -- bits can be set from 1 to 0 only (OR previously read data with the written data)
                         MEM_DAT_O <= read_data and write_buf_datab;
+                        
+                        -- clear the write buffer with 0xFFFF at the current position
+                        write_buf_web <= '1';
                     end if;
                     
                     if MEM_ACK_I = '1' then
                         mem_cyc <= '0';
                         MEM_WE_O <= '0';
                         counter <= counter + 1;
-                        
-                        -- clears the write buffer with 0xFFFF at the current position
-                        write_buf_web <= '1';
                     end if;
                     
                 when s_erasing_start =>
