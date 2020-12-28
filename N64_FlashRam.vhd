@@ -44,34 +44,27 @@ architecture Behavioral of N64_FlashRam is
             QB: out  std_logic_vector(15 downto 0));
     end component;
 
-    -- #define FRAM_EXECUTE_CMD		    0xD2000000
-    -- #define FRAM_STATUS_MODE_CMD	    0xE1000000
-    -- #define FRAM_ERASE_OFFSET_CMD	0x4B000000
-    -- #define FRAM_WRITE_OFFSET_CMD	0xA5000000
-    -- #define FRAM_ERASE_MODE_CMD		0x78000000
-    -- #define FRAM_WRITE_MODE_CMD		0xB4000000
-    -- #define FRAM_READ_MODE_CMD		0xF0000000
-    constant CMD_EXECUTE        : std_logic_vector(7 downto 0) := x"D2";
-    constant CMD_STATUS_MODE    : std_logic_vector(7 downto 0) := x"E1";
-    constant CMD_ERASE_OFFSET   : std_logic_vector(7 downto 0) := x"4B";
+    constant CMD_STATUS_MODE    : std_logic_vector(7 downto 0) := x"D2";
+    constant CMD_READID_MODE    : std_logic_vector(7 downto 0) := x"E1";
+    constant CMD_ERASE_SECTOR   : std_logic_vector(7 downto 0) := x"4B";
     constant CMD_ERASE_CHIP     : std_logic_vector(7 downto 0) := x"3C";
-    constant CMD_WRITE_OFFSET   : std_logic_vector(7 downto 0) := x"A5";
-    constant CMD_ERASE_MODE     : std_logic_vector(7 downto 0) := x"78";
+    constant CMD_WRITE_START    : std_logic_vector(7 downto 0) := x"A5";
+    constant CMD_ERASE_START    : std_logic_vector(7 downto 0) := x"78";
     constant CMD_WRITE_MODE     : std_logic_vector(7 downto 0) := x"B4";
     constant CMD_READ_MODE      : std_logic_vector(7 downto 0) := x"F0";
 
-    constant STATUS_ERASING : std_logic_vector(15 downto 0) := x"0082";
-    constant STATUS_ERASE_END : std_logic_vector(15 downto 0) := x"0008";
-    constant STATUS_WRITING : std_logic_vector(15 downto 0) := x"0081";
-    constant STATUS_WRITE_END : std_logic_vector(15 downto 0) := x"0004";
-    constant STATUS_READ_END : std_logic_vector(15 downto 0) := x"0080";
+    constant STATUS_ERASING   : std_logic_vector(7 downto 0)   := x"82";
+    constant STATUS_ERASE_END : std_logic_vector(7 downto 0)   := x"08";
+    constant STATUS_WRITING   : std_logic_vector(7 downto 0)   := x"81";
+    constant STATUS_WRITE_END : std_logic_vector(7 downto 0)   := x"04";
+    constant STATUS_READ_END  : std_logic_vector(7 downto 0)   := x"80";
 
     constant FLASH_ID : std_logic_vector(63 downto 0) := x"001D00C280011111"; --MXL1101
 
     signal cmd_reg : std_logic_vector(31 downto 0) := (others => '0');
     signal cmd_stb : std_logic;
-    signal status : std_logic_vector(63 downto 0) := (others => '0');
-    signal next_status : std_logic_vector(63 downto 0) := (others => '0');
+    signal status : std_logic_vector(7 downto 0) := (others => '0');
+    signal next_status : std_logic_vector(7 downto 0) := (others => '0');
     signal erase_chip : std_logic := '0';
     signal write_buf_dataa : std_logic_vector(15 downto 0);
     signal write_buf_datab : std_logic_vector(15 downto 0);
@@ -88,8 +81,8 @@ architecture Behavioral of N64_FlashRam is
     signal erase_done : std_logic;
 
     type flash_state_t is (
-        s_idle,
-        s_status,
+        s_read_status,
+        s_read_id,
         s_write,
         s_writing_start,
         s_writing,
@@ -98,7 +91,7 @@ architecture Behavioral of N64_FlashRam is
         s_erasing,
         s_reading
     );
-    signal flash_state : flash_state_t := s_idle;
+    signal flash_state : flash_state_t := s_read_status;
 
 begin
 
@@ -150,31 +143,31 @@ begin
     begin
         if rising_edge(CLK_I) then
             if (RST_I = '1') then
-                flash_state <= s_idle;
+                flash_state <= s_read_status;
             else
                 case flash_state is
-                when s_idle =>
+                when s_read_status =>
                     if (cmd_stb = '1') then
                         case cmd_reg(31 downto 24) is
-                        when CMD_EXECUTE => flash_state <= s_idle;
-                        when CMD_STATUS_MODE => flash_state <= s_status;
+                        when CMD_STATUS_MODE => flash_state <= s_read_status;
+                        when CMD_READID_MODE => flash_state <= s_read_id;
                         when CMD_WRITE_MODE => flash_state <= s_write;
-                        when CMD_WRITE_OFFSET => flash_state <= s_writing_start;
-                        when CMD_ERASE_OFFSET => flash_state <= s_erase;
+                        when CMD_WRITE_START => flash_state <= s_writing_start;
+                        when CMD_ERASE_SECTOR => flash_state <= s_erase;
                         when CMD_ERASE_CHIP => flash_state <= s_erase;
                         when CMD_READ_MODE => flash_state <= s_reading;
                         when others => null;
                         end case;
                     end if;
                     
-                when s_status =>
+                when s_read_id =>
                     if (cmd_stb = '1') then
                         case cmd_reg(31 downto 24) is
-                        when CMD_EXECUTE => flash_state <= s_idle;
-                        when CMD_STATUS_MODE => flash_state <= s_status;
+                        when CMD_STATUS_MODE => flash_state <= s_read_status;
+                        when CMD_READID_MODE => flash_state <= s_read_id;
                         when CMD_WRITE_MODE => flash_state <= s_write;
-                        when CMD_WRITE_OFFSET => flash_state <= s_writing_start;
-                        when CMD_ERASE_OFFSET => flash_state <= s_erase;
+                        when CMD_WRITE_START => flash_state <= s_writing_start;
+                        when CMD_ERASE_SECTOR => flash_state <= s_erase;
                         when CMD_ERASE_CHIP => flash_state <= s_erase;
                         when CMD_READ_MODE => flash_state <= s_reading;
                         when others => null;
@@ -184,11 +177,11 @@ begin
                 when s_reading =>
                     if (cmd_stb = '1') then
                         case cmd_reg(31 downto 24) is
-                        when CMD_EXECUTE => flash_state <= s_idle;
-                        when CMD_STATUS_MODE => flash_state <= s_status;
+                        when CMD_STATUS_MODE => flash_state <= s_read_status;
+                        when CMD_READID_MODE => flash_state <= s_read_id;
                         when CMD_WRITE_MODE => flash_state <= s_write;
-                        when CMD_WRITE_OFFSET => flash_state <= s_writing_start;
-                        when CMD_ERASE_OFFSET => flash_state <= s_erase;
+                        when CMD_WRITE_START => flash_state <= s_writing_start;
+                        when CMD_ERASE_SECTOR => flash_state <= s_erase;
                         when CMD_ERASE_CHIP => flash_state <= s_erase;
                         when CMD_READ_MODE => flash_state <= s_reading;
                         when others => null;
@@ -198,13 +191,13 @@ begin
                 when s_erase =>
                     if (cmd_stb = '1') then
                         case cmd_reg(31 downto 24) is
-                        when CMD_EXECUTE => flash_state <= s_idle;
-                        when CMD_STATUS_MODE => flash_state <= s_status;
+                        when CMD_STATUS_MODE => flash_state <= s_read_status;
+                        when CMD_READID_MODE => flash_state <= s_read_id;
                         when CMD_WRITE_MODE => flash_state <= s_write;
-                        when CMD_WRITE_OFFSET => flash_state <= s_writing_start;
-                        when CMD_ERASE_OFFSET => flash_state <= s_erase;
+                        when CMD_WRITE_START => flash_state <= s_writing_start;
+                        when CMD_ERASE_SECTOR => flash_state <= s_erase;
                         when CMD_ERASE_CHIP => flash_state <= s_erase;
-                        when CMD_ERASE_MODE => flash_state <= s_erasing_start;
+                        when CMD_ERASE_START => flash_state <= s_erasing_start;
                         when CMD_READ_MODE => flash_state <= s_reading;
                         when others => null;
                         end case;
@@ -213,11 +206,11 @@ begin
                 when s_write =>
                     if (cmd_stb = '1') then
                         case cmd_reg(31 downto 24) is
-                        when CMD_EXECUTE => flash_state <= s_idle;
-                        when CMD_STATUS_MODE => flash_state <= s_status;
+                        when CMD_STATUS_MODE => flash_state <= s_read_status;
+                        when CMD_READID_MODE => flash_state <= s_read_id;
                         when CMD_WRITE_MODE => flash_state <= s_write;
-                        when CMD_WRITE_OFFSET => flash_state <= s_writing_start;
-                        when CMD_ERASE_OFFSET => flash_state <= s_erase;
+                        when CMD_WRITE_START => flash_state <= s_writing_start;
+                        when CMD_ERASE_SECTOR => flash_state <= s_erase;
                         when CMD_ERASE_CHIP => flash_state <= s_erase;
                         when CMD_READ_MODE => flash_state <= s_reading;
                         when others => null;
@@ -234,7 +227,7 @@ begin
                         flash_state <= s_writing_start;
                     end if;
                     if write_done = '1' then
-                        flash_state <= s_idle;
+                        flash_state <= s_read_status;
                     end if;
                     
                 when s_erasing_start =>
@@ -242,11 +235,11 @@ begin
                     
                 when s_erasing =>
                     if erase_done = '1' then
-                        flash_state <= s_idle;
+                        flash_state <= s_read_status;
                     end if;
                 
                 when others =>
-                    flash_state <= s_idle;
+                    flash_state <= s_read_status;
                 end case;
                 
             end if;
@@ -262,11 +255,11 @@ begin
             else
                 if (cmd_stb = '1') then
                     case cmd_reg(31 downto 24) is
-                    when CMD_WRITE_OFFSET =>
+                    when CMD_WRITE_START =>
                         write_offset <= cmd_reg(9 downto 0);
                         erase_chip <= '0';
                         
-                    when CMD_ERASE_OFFSET =>
+                    when CMD_ERASE_SECTOR =>
                         write_offset <= cmd_reg(9 downto 7) & "0000000";
                         erase_chip <= '0';
                         
@@ -285,40 +278,37 @@ begin
     begin
         if rising_edge(CLK_I) then
             if RST_I = '1' then
-                next_status <= STATUS_READ_END & STATUS_READ_END & STATUS_READ_END & STATUS_READ_END;
+                next_status <= STATUS_READ_END;
             else
                 
                 -- prepare the next status word
                 case flash_state is
                 
-                when s_idle =>
+                when s_read_status =>
                     if cmd_stb = '1' then
-                        next_status <= STATUS_READ_END & STATUS_READ_END & STATUS_READ_END & STATUS_READ_END;
+                        next_status <= STATUS_READ_END;
                     end if;
                     
                 when s_writing_start =>
-                    next_status <= STATUS_WRITING & STATUS_WRITING & STATUS_WRITING & STATUS_WRITING;
+                    next_status <= STATUS_WRITING;
                     
                 when s_writing =>
-                    next_status <= STATUS_WRITING & STATUS_WRITING & STATUS_WRITING & STATUS_WRITING;
+                    next_status <= STATUS_WRITING;
                     if write_done = '1' then
-                        next_status <= STATUS_WRITE_END & STATUS_WRITE_END & STATUS_WRITE_END & STATUS_WRITE_END;
+                        next_status <= STATUS_WRITE_END;
                     end if;
                     
                 when s_erasing_start =>
-                    next_status <= STATUS_ERASING & STATUS_ERASING & STATUS_ERASING & STATUS_ERASING;
+                    next_status <= STATUS_ERASING;
                     
                 when s_erasing =>
-                    next_status <= STATUS_ERASING & STATUS_ERASING & STATUS_ERASING & STATUS_ERASING;
+                    next_status <= STATUS_ERASING;
                     if erase_done = '1' then
-                        next_status <= STATUS_ERASE_END & STATUS_ERASE_END & STATUS_ERASE_END & STATUS_ERASE_END;
+                        next_status <= STATUS_ERASE_END;
                     end if;
                     
                 when s_reading =>
-                    next_status <= STATUS_READ_END & STATUS_READ_END & STATUS_READ_END & STATUS_READ_END;
-                    
-                when s_status =>
-                    next_status <= FLASH_ID;
+                    next_status <= STATUS_READ_END;
                     
                 when others => null;
                 end case;
@@ -334,13 +324,7 @@ begin
 
     AD_O_PROC : process (flash_state, status, N64_ADDR_I, read_data, write_buf_dataa, MEM_ACK_I, MEM_DAT_I)
     begin
-        case N64_ADDR_I(2 downto 1) is
-            when "00" => N64_AD_O <= status(15 downto 0);
-            when "01" => N64_AD_O <= status(31 downto 16);
-            when "10" => N64_AD_O <= status(47 downto 32);
-            when "11" => N64_AD_O <= status(63 downto 48);
-            when others => null;
-        end case;
+        N64_AD_O <= x"00" & status;
         
         if flash_state = s_reading then
             if MEM_ACK_I = '1' then
@@ -351,6 +335,15 @@ begin
         end if;
         if flash_state = s_write then
             N64_AD_O <= write_buf_dataa;
+        end if;
+        if flash_state = s_read_id then
+            case N64_ADDR_I(2 downto 1) is
+                when "00" => N64_AD_O <= FLASH_ID(15 downto 0);
+                when "01" => N64_AD_O <= FLASH_ID(31 downto 16);
+                when "10" => N64_AD_O <= FLASH_ID(47 downto 32);
+                when "11" => N64_AD_O <= FLASH_ID(63 downto 48);
+                when others => null;
+            end case;
         end if;
     end process AD_O_PROC;
     
