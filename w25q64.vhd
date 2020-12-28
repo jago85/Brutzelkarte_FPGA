@@ -187,8 +187,6 @@ begin
             when s_init =>
                 state <= s_readid;
                 spi_shift_out <= FLASH_CMD_READ_JEDEC_ID;
-                -- state <= s_wren_vol_cmd;
-                -- spi_shift_out <= FLASH_CMD_WREN_VOLATILE;
                 spi_clock_en <= '1';
                 CSN_O <= '0';
                 shift_counter <= "000000000000000000000000000000001";
@@ -208,38 +206,45 @@ begin
                         CSN_O <= '1';
                         spi_clock_en <= '0';
                         spi_sck <= '0';
+                        shift_counter <= "000001000000000000000000000000000";
                         state <= s_readid_end;
                     end if;
                 end if;
                 
             when s_readid_end =>
-                spi_shift_out <= FLASH_CMD_WREN_VOLATILE;
-                spi_clock_en <= '1';
-                CSN_O <= '0';
-                shift_counter <= "000000000000000000000000000000001";
-                state <= s_wren_vol_cmd;
-                
+                shift_counter <= shift_counter(shift_counter'high - 1 downto shift_counter'low) & '0';
+                if shift_counter(32) = '1' then
+                    spi_shift_out <= FLASH_CMD_WREN_VOLATILE;
+                    spi_clock_en <= '1';
+                    CSN_O <= '0';
+                    shift_counter <= "000000000000000000000000000000001";
+                    state <= s_wren_vol_cmd;
+
+                end if;                
             when s_wren_vol_cmd =>
                 if spi_sck = '0' then
                     if shift_counter(8) = '1' then
                         CSN_O <= '1';
                         spi_clock_en <= '0';
                         spi_sck <= '0';
+                        shift_counter <= "000001000000000000000000000000000";
                         state <= s_wren_vol_end;
                     end if;
                 end if;
                 
             when s_wren_vol_end =>
-                -- spi_shift_out <= FLASH_CMD_WRITE_STATUS_REGISTER2;
-                spi_shift_out <= FLASH_CMD_WRITE_STATUS_REGISTER1;
-                spi_clock_en <= '1';
-                CSN_O <= '0';
-                shift_counter <= "000000000000000000000000000000001";
-                state <= s_set_qe_cmd;
+                shift_counter <= shift_counter(shift_counter'high - 1 downto shift_counter'low) & '0';
+                if shift_counter(32) = '1' then
+                    -- using FLASH_CMD_WRITE_STATUS_REGISTER1 is for compatibility with W25Q64FV
+                    spi_shift_out <= FLASH_CMD_WRITE_STATUS_REGISTER1;
+                    spi_clock_en <= '1';
+                    CSN_O <= '0';
+                    shift_counter <= "000000000000000000000000000000001";
+                    state <= s_set_qe_cmd;
+                end if;
                 
             when s_set_qe_cmd =>
                 if spi_sck = '0' then
-                    -- if shift_counter(16) = '1' then
                     if shift_counter(24) = '1' then
                         CSN_O <= '1';
                         spi_clock_en <= '0';
@@ -248,7 +253,6 @@ begin
                         shift_counter <= "000001000000000000000000000000000";
                     end if;
                 else
-                    -- if shift_counter(7) = '1' then
                     if shift_counter(15) = '1' then
                         spi_shift_out <= x"02";
                     end if;
