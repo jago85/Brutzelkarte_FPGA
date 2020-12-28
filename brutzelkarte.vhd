@@ -355,7 +355,7 @@ architecture Behavioral of brutzelkarte is
     );
     end component;
     
-    constant FPGA_VERSION   : std_logic_vector(31 downto 0) := x"04000201";
+    constant FPGA_VERSION   : std_logic_vector(31 downto 0) := x"04000202";
     
     constant FLASH_CMD_NONE   : std_logic_vector(1 downto 0) := "00";
     constant FLASH_CMD_READ   : std_logic_vector(1 downto 0) := "01";
@@ -400,7 +400,6 @@ architecture Behavioral of brutzelkarte is
     signal read_ff1, read_ff2, read_last : std_logic;
     signal write_ff1, write_ff2, write_last : std_logic;
     signal ad_ff1, ad_ff2 : std_logic_vector(15 downto 0);
-    signal ad_out : std_logic_vector(15 downto 0);
     
     signal cart_addr : std_logic_vector(31 downto 0);
     signal cart_addr_latch : std_logic_vector(31 downto 0);
@@ -412,6 +411,7 @@ architecture Behavioral of brutzelkarte is
     signal sram_cs : std_logic;
     signal ci_cs : std_logic;
     signal ci_data : std_logic_vector(31 downto 0);
+    signal ci_out : std_logic_vector(15 downto 0);
     
     signal flash_cmd            : std_logic_vector(1 downto 0);
     signal flash_cmd_addr       : std_logic_vector(23 downto 0);
@@ -1075,25 +1075,20 @@ begin
                             end if;
                         end if;
                     end if;
-                
-                    if read_ff2 = '1' then
-                        N64_AD_IO <= ad_out;
-                    else
-                        N64_AD_IO <= (others => 'Z');
-                    end if;
-                end if;
-                
-                -- F-Zero X reads 0x05000508 - 0x0500050B and does not start if this is 0x00000000 
-                -- but it starts with 0xFFFFFFFF, so default is all '1'
-                ad_out <= (others => '1');
-                if rom_cs = '1' then
-                    ad_out <= rom_buffer_q;
-                end if;
-                if sram_cs = '1' then
-                    if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
-                        ad_out <= sram_ad_out;
-                    elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
-                        ad_out <= flashram_ad_out;
+                    
+                    N64_AD_IO <= (others => 'Z');
+                    if (read_ff2 = '1') then
+                        if ci_cs = '1' then
+                            N64_AD_IO <= ci_out;
+                        elsif sram_cs = '1' then
+                            if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
+                                N64_AD_IO <= sram_ad_out;
+                            elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
+                                N64_AD_IO <= flashram_ad_out;
+                            end if;
+                        elsif rom_cs = '1' then
+                            N64_AD_IO <= rom_buffer_q;
+                        end if;
                     end if;
                 end if;
                 
@@ -1255,29 +1250,29 @@ begin
                         end case;
                     end if;
                     
-                    ad_out <= (others => '0');
+                    ci_out <= (others => '0');
                     case cart_addr is
                         
                     when CART_CONTROL_REG_W1 =>
-                        ad_out(cart_control_reg'range) <= cart_control_reg;
+                        ci_out(cart_control_reg'range) <= cart_control_reg;
                         
                     when CART_VERSION_REG_ADDR =>
-                        ad_out <= FPGA_VERSION(31 downto 16);
+                        ci_out <= FPGA_VERSION(31 downto 16);
                         
                     when CART_VERSION_REG_W1 =>
-                        ad_out <= FPGA_VERSION(15 downto 0);
+                        ci_out <= FPGA_VERSION(15 downto 0);
                         
                     when CART_ROMOFFSET_REG_W1 =>
-                        ad_out(cart_rom_offset'range) <= cart_rom_offset;
+                        ci_out(cart_rom_offset'range) <= cart_rom_offset;
                         
                     when CART_SAVEOFFSET_REG_W1 =>
-                        ad_out(cart_save_offset'range) <= cart_save_offset;
+                        ci_out(cart_save_offset'range) <= cart_save_offset;
                         
                     when CART_BACKUP_REG_ADDR =>
-                        ad_out <= cart_backup(31 downto 16);
+                        ci_out <= cart_backup(31 downto 16);
                         
                     when CART_BACKUP_REG_W1 =>
-                        ad_out <= cart_backup(15 downto 0);
+                        ci_out <= cart_backup(15 downto 0);
                         
                     when others => null;
                     end case;
