@@ -375,6 +375,9 @@ architecture Behavioral of brutzelkarte is
     constant CART_VERSION_REG_ADDR    : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0004#);
     constant CART_VERSION_REG_W1      : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_VERSION_REG_ADDR) + 2);
     
+    constant CART_ROMOFFSET_REG_ADDR  : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0008#);
+    constant CART_ROMOFFSET_REG_W1    : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_ROMOFFSET_REG_ADDR) + 2);
+    
     constant CART_SAVEOFFSET_REG_ADDR : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#000C#);
     constant CART_SAVEOFFSET_REG_W1   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_SAVEOFFSET_REG_ADDR) + 2);
     
@@ -529,6 +532,7 @@ architecture Behavioral of brutzelkarte is
         -- [4] FLASHRAM enable: 0 = dis, 1 = en
         -- [5] MAPPING enable: 0 = dis, 1 = en
     
+    signal cart_rom_offset : std_logic_vector(5 downto 0);  -- position of the first ROM address in MiB
     signal cart_save_offset : std_logic_vector(7 downto 0); -- position of the first SRAM address in KiB
     signal cart_backup : std_logic_vector(31 downto 0); -- backup register for storing application data
     
@@ -1113,12 +1117,17 @@ begin
                 case rom_state is
                 when s_idle =>
                     if rom_cs = '1' then
-                        -- flash_addr_tmp := std_logic_vector(unsigned(cart_addr_latch(25 downto 2)) + unsigned(cart_rom_offset & "000000000000000000"));
                         flash_addr_tmp := cart_addr_latch(25 downto 2);
                         
-                        -- map the high bits of the address if ROM and MAPPING are enabled
-                        if cart_control_reg(CART_CONTROL_FLASH_SEL) = '1' and cart_control_reg(CART_CONTROL_MAPPING_ENABLE) = '1' then
-                            flash_addr_tmp(23 downto 19) := current_mapping(4 downto 0);
+                        -- ROM Flash supports offset and mapping
+                        -- (BOOT Flash is always directly mapped)
+                        if cart_control_reg(CART_CONTROL_FLASH_SEL) = '1' then
+                            if cart_control_reg(CART_CONTROL_MAPPING_ENABLE) = '1' then
+                                -- map the high bits of the address 
+                                flash_addr_tmp(23 downto 19) := current_mapping(4 downto 0);
+                            else
+                                flash_addr_tmp := std_logic_vector(unsigned(cart_addr_latch(25 downto 2)) + unsigned(cart_rom_offset & "000000000000000000"));
+                            end if;
                         end if;
                         flash_last_addr <= flash_addr_tmp;
                         
@@ -1255,6 +1264,9 @@ begin
                         when CART_CONTROL_REG_W1 =>
                             cart_control_reg <= ci_data(cart_control_reg'range);
                             
+                        when CART_ROMOFFSET_REG_W1 =>
+                            cart_rom_offset <= ci_data(cart_rom_offset'range);
+                            
                         when CART_SAVEOFFSET_REG_W1 =>
                             cart_save_offset <= ci_data(cart_save_offset'range);
                             
@@ -1285,6 +1297,9 @@ begin
                         
                     when CART_VERSION_REG_W1 =>
                         ad_out <= FPGA_VERSION(15 downto 0);
+                        
+                    when CART_ROMOFFSET_REG_W1 =>
+                        ad_out(cart_rom_offset'range) <= cart_rom_offset;
                         
                     when CART_SAVEOFFSET_REG_W1 =>
                         ad_out(cart_save_offset'range) <= cart_save_offset;
