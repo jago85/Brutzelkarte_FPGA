@@ -185,7 +185,6 @@ architecture Behavioral of brutzelkarte is
            N64_WR_LAST_I    : in  std_logic;
            N64_AD_I         : in  std_logic_vector(15 downto 0);
            N64_AD_O         : out std_logic_vector(15 downto 0);
-           USE_FLASH_O      : out std_logic;
            
            MEM_CYC_O        : out std_logic;
            MEM_STB_O        : out std_logic;
@@ -460,7 +459,6 @@ architecture Behavioral of brutzelkarte is
     signal read_ff1, read_ff2, read_last : std_logic;
     signal write_ff1, write_ff2, write_last : std_logic;
     signal ad_ff1, ad_ff2 : std_logic_vector(15 downto 0);
-    signal ad_out : std_logic_vector(15 downto 0);
     
     signal cart_addr : std_logic_vector(31 downto 0);
     signal cart_addr_latch : std_logic_vector(31 downto 0);
@@ -472,6 +470,7 @@ architecture Behavioral of brutzelkarte is
     signal sram_cs : std_logic;
     signal ci_cs : std_logic;
     signal ci_data : std_logic_vector(31 downto 0);
+    signal ci_out : std_logic_vector(15 downto 0);
     
     signal flash_cmd            : std_logic_vector(1 downto 0);
     signal flash_cmd_addr       : std_logic_vector(23 downto 0);
@@ -797,7 +796,6 @@ begin
         N64_WR_LAST_I    => write_last,
         N64_AD_I         => ad_ff2,
         N64_AD_O         => flashram_ad_out,
-        USE_FLASH_O      => open,
         
         MEM_CYC_O        => flashram_cyc,
         MEM_STB_O        => flashram_stb,
@@ -1233,25 +1231,20 @@ begin
                             end if;
                         end if;
                     end if;
-                
-                    if read_ff2 = '1' then
-                        N64_AD_IO <= ad_out;
-                    else
-                        N64_AD_IO <= (others => 'Z');
-                    end if;
-                end if;
-                
-                -- F-Zero X reads 0x05000508 - 0x0500050B and does not start if this is 0x00000000 
-                -- but it starts with 0xFFFFFFFF, so default is all '1'
-                ad_out <= (others => '1');
-                if rom_cs = '1' then
-                    ad_out <= rom_buffer_q;
-                end if;
-                if sram_cs = '1' then
-                    if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
-                        ad_out <= sram_ad_out;
-                    elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
-                        ad_out <= flashram_ad_out;
+                    
+                    N64_AD_IO <= (others => 'Z');
+                    if (read_ff2 = '1') then
+                        if ci_cs = '1' then
+                            N64_AD_IO <= ci_out;
+                        elsif sram_cs = '1' then
+                            if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
+                                N64_AD_IO <= sram_ad_out;
+                            elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
+                                N64_AD_IO <= flashram_ad_out;
+                            end if;
+                        elsif rom_cs = '1' then
+                            N64_AD_IO <= rom_buffer_q;
+                        end if;
                     end if;
                 end if;
                 
@@ -1437,56 +1430,59 @@ begin
                         end if;
                     end if;
                     
-                    ad_out <= (others => '0');
+                    ci_out <= (others => '0');
                     case cart_addr is
                         
                     when CART_CONTROL_REG_W1 =>
-                        ad_out(cart_control_reg'range) <= cart_control_reg;
+                        ci_out(cart_control_reg'range) <= cart_control_reg;
                         
                     when CART_VERSION_REG_ADDR =>
-                        ad_out <= FPGA_VERSION(31 downto 16);
+                        ci_out <= FPGA_VERSION(31 downto 16);
                         
                     when CART_VERSION_REG_W1 =>
-                        ad_out <= FPGA_VERSION(15 downto 0);
+                        ci_out <= FPGA_VERSION(15 downto 0);
+                        
+                    when CART_ROMOFFSET_REG_W1 =>
+                        ci_out(cart_rom_offset'range) <= cart_rom_offset;
                         
                     when CART_SAVEOFFSET_REG_W1 =>
-                        ad_out(cart_save_offset'range) <= cart_save_offset;
+                        ci_out(cart_save_offset'range) <= cart_save_offset;
                         
                     when CART_BACKUP_REG_ADDR =>
-                        ad_out <= cart_backup(31 downto 16);
+                        ci_out <= cart_backup(31 downto 16);
                         
                     when CART_BACKUP_REG_W1 =>
-                        ad_out <= cart_backup(15 downto 0);
+                        ci_out <= cart_backup(15 downto 0);
                     
                     when CART_UART_STATUS_REG_W1 =>
-                        ad_out(CART_UART_STATUS_TXNF) <= not uart_txfifo_full;
-                        ad_out(CART_UART_STATUS_TXE) <= uart_txfifo_empty;
-                        ad_out(CART_UART_STATUS_TXHE) <= uart_txfifo_almost_empty;
-                        ad_out(CART_UART_STATUS_TXACT) <= uart_tx_active;
+                        ci_out(CART_UART_STATUS_TXNF) <= not uart_txfifo_full;
+                        ci_out(CART_UART_STATUS_TXE) <= uart_txfifo_empty;
+                        ci_out(CART_UART_STATUS_TXHE) <= uart_txfifo_almost_empty;
+                        ci_out(CART_UART_STATUS_TXACT) <= uart_tx_active;
                         
-                        ad_out(CART_UART_STATUS_RXNE) <= not uart_rxfifo_empty;
-                        ad_out(CART_UART_STATUS_RXF) <= uart_rxfifo_full;
-                        ad_out(CART_UART_STATUS_RXHF) <= uart_rxfifo_almost_full;
-                        ad_out(CART_UART_STATUS_RXOF) <= uart_rxfifo_overflow;
+                        ci_out(CART_UART_STATUS_RXNE) <= not uart_rxfifo_empty;
+                        ci_out(CART_UART_STATUS_RXF) <= uart_rxfifo_full;
+                        ci_out(CART_UART_STATUS_RXHF) <= uart_rxfifo_almost_full;
+                        ci_out(CART_UART_STATUS_RXOF) <= uart_rxfifo_overflow;
                         
                     when CART_UART_TX_FREE_REG_W1 =>
-                        ad_out(uart_txfifo_free_count'range) <= uart_txfifo_free_count;
+                        ci_out(uart_txfifo_free_count'range) <= uart_txfifo_free_count;
                             
                     when CART_UART_RX_READY_REG_W1 =>
-                        ad_out(uart_rxfifo_ready_count'range) <= uart_rxfifo_ready_count;
+                        ci_out(uart_rxfifo_ready_count'range) <= uart_rxfifo_ready_count;
                             
                     when CART_UART_DATA_REG_W1 =>
                         -- trigger fifo read
                         if read_ff2 = '1' and read_last = '0' then
                             uart_rxfifo_rden <= '1';
                         end if;
-                        ad_out(7 downto 0) <= uart_rxfifo_q;
+                        ci_out(7 downto 0) <= uart_rxfifo_q;
                             
                     when others => null;
                     end case;
                     
                     if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) then
-                        ad_out <= uart_rx_dma_buf;
+                        ci_out <= uart_rx_dma_buf;
                     end if;
                     
                 end if;
