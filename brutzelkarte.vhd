@@ -437,6 +437,7 @@ architecture Behavioral of brutzelkarte is
     constant CART_CONTROL_FLASHRAM_ENABLE   : natural := 4;
     
     constant CART_CONTROL_UART_ENABLE       : natural := 6;
+    constant CART_CONTROL_UART_FC_ENABLE    : natural := 7;
     
     -- Indices of cart uart status bits
     constant CART_UART_STATUS_TXNF         : natural := 0;
@@ -579,7 +580,7 @@ architecture Behavioral of brutzelkarte is
     signal efb_dat_i : std_logic_vector(7 downto 0);
     signal efb_dat_o : std_logic_vector(7 downto 0);
     
-    signal cart_control_reg : std_logic_vector(6 downto 0);
+    signal cart_control_reg : std_logic_vector(7 downto 0);
         -- [0] Flash select: 0 = BOOT, 1 = ROM
         -- [1] EEP enable: 0 = dis, 1 = en
         -- [2] EEP select: 0 = 4Kb, 1 = 16Kb
@@ -587,6 +588,7 @@ architecture Behavioral of brutzelkarte is
         -- [4] FLASHRAM enable: 0 = dis, 1 = 
         
         -- [6] UART Enable: 0 = Disabled, 1 = Enabled
+        -- [7] UART Flowcontrol Enable: 0 = Disabled, 1 = Enabled
         
     signal cart_rom_offset : std_logic_vector(5 downto 0);  -- position of the first ROM address in MiB
     signal cart_save_offset : std_logic_vector(7 downto 0); -- position of the first SRAM address in KiB
@@ -635,6 +637,7 @@ architecture Behavioral of brutzelkarte is
         s_uart_rxfifo_read_delay0
     );
     signal uart_rxfifo_read_state : uart_rxfifo_read_state_t;
+    signal uart_rts : std_logic;
     
     signal rtc_time_valid : std_logic;
     signal rtc_time_ack   : std_logic;
@@ -874,6 +877,8 @@ begin
         N64_CIC_RESET_I => cold_reset_ff2
     );
     
+    uart_rts <= UART_RTS_I when cart_control_reg(CART_CONTROL_UART_FC_ENABLE) = '1' else '0';
+    
     uart_access_inst : uart_access
     generic map (
         clock_frequency         => 79_800_000,
@@ -937,7 +942,7 @@ begin
         UART_TX_ACTIVE_O        => uart_tx_active,
         
         USB_DETECT_I            => usb_detect_ff2,
-        UART_RTS_I              => UART_RTS_I,
+        UART_RTS_I              => uart_rts,
         UART_TX_O               => UART_TX_O,
         UART_RX_I               => UART_RX_I
     );
