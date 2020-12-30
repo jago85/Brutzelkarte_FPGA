@@ -46,6 +46,7 @@ port (
     
     -- USB-UART
     USB_DETECT_I        : in std_logic;
+    UART_RTS_I          : in std_logic;
     UART_RX_I           : in std_logic;
     UART_TX_O           : out std_logic;
     
@@ -184,7 +185,6 @@ architecture Behavioral of brutzelkarte is
            N64_WR_LAST_I    : in  std_logic;
            N64_AD_I         : in  std_logic_vector(15 downto 0);
            N64_AD_O         : out std_logic_vector(15 downto 0);
-           USE_FLASH_O      : out std_logic;
            
            MEM_CYC_O        : out std_logic;
            MEM_STB_O        : out std_logic;
@@ -304,10 +304,39 @@ architecture Behavioral of brutzelkarte is
         RTC_DATE_O              : out std_logic_vector(5 downto 0);
         RTC_MONTH_O             : out std_logic_vector(4 downto 0);
         RTC_YEAR_O              : out std_logic_vector(7 downto 0);
+    
+        -- bypass mode
+        BYP_ENABLE_I            : in std_logic;
+        BYP_TX_VALID_I          : in std_logic;
+        BYP_TX_ACK_O            : out std_logic;
+        BYP_TX_DATA_I           : in std_logic_vector(7 downto 0);
+        BYP_RX_DATA_O           : out std_logic_vector(7 downto 0);
+        BYP_RX_VALID_O          : out std_logic;
+    
+        UART_TX_ACTIVE_O        : out std_logic;
         
         USB_DETECT_I            : in std_logic;
+        UART_RTS_I              : in std_logic;
         UART_TX_O               : out std_logic;
         UART_RX_I               : in std_logic
+    );
+    end component;
+    
+    component uart_fifo_level_tracking
+    port (
+        CLK_I           : in std_logic;
+        RST_I           : in std_logic;
+        RD_EN_I         : in std_logic;
+        WR_EN_I         : in std_logic;
+        DATA_I          : in std_logic_vector(7 downto 0);
+        Q_O             : out std_logic_vector(7 downto 0);
+        ALMOST_EMPTY_O  : out std_logic;
+        EMPTY_O         : out std_logic;
+        ALMOST_FULL_O   : out std_logic;
+        FULL_O          : out std_logic;
+        
+        FREE_COUNT_O    : out std_logic_vector(10 downto 0);
+        FULL_COUNT_O    : out std_logic_vector(10 downto 0)
     );
     end component;
     
@@ -384,6 +413,22 @@ architecture Behavioral of brutzelkarte is
     constant CART_BACKUP_REG_ADDR     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0010#);
     constant CART_BACKUP_REG_W1       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_BACKUP_REG_ADDR) + 2);
     
+    -- UART
+    constant CART_UART_STATUS_REG_ADDR : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0014#);
+    constant CART_UART_STATUS_REG_W1   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_STATUS_REG_ADDR) + 2);
+    
+    constant CART_UART_TX_FREE_REG_ADDR   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0018#);
+    constant CART_UART_TX_FREE_REG_W1     : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_TX_FREE_REG_ADDR) + 2);
+    
+    constant CART_UART_RX_READY_REG_ADDR  : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#001C#);
+    constant CART_UART_RX_READY_REG_W1    : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_RX_READY_REG_ADDR) + 2);
+    
+    constant CART_UART_DATA_REG_ADDR       : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0020#);
+    constant CART_UART_DATA_REG_W1         : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_UART_DATA_REG_ADDR) + 2);
+    
+    -- TX/RX data DMA address space
+    constant CART_UART_DMA_ADDR           : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#1000#);
+    
     constant CART_MAPPING0_REG_ADDR   : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(CART_REGISTER_BASE_ADDR) + 16#0080#);
     
     -- Indices of cart control bits
@@ -393,6 +438,20 @@ architecture Behavioral of brutzelkarte is
     constant CART_CONTROL_SRAM_ENABLE       : natural := 3;
     constant CART_CONTROL_FLASHRAM_ENABLE   : natural := 4;
     constant CART_CONTROL_MAPPING_ENABLE    : natural := 5;
+    
+    constant CART_CONTROL_UART_ENABLE       : natural := 6;
+    constant CART_CONTROL_UART_FC_ENABLE    : natural := 7;
+    
+    -- Indices of cart uart status bits
+    constant CART_UART_STATUS_TXNF         : natural := 0;
+    constant CART_UART_STATUS_TXE          : natural := 1;
+    constant CART_UART_STATUS_TXHE         : natural := 2;
+    constant CART_UART_STATUS_TXACT        : natural := 3;
+    
+    constant CART_UART_STATUS_RXNE         : natural := 8;
+    constant CART_UART_STATUS_RXF          : natural := 9;
+    constant CART_UART_STATUS_RXHF         : natural := 10;
+    constant CART_UART_STATUS_RXOF         : natural := 11;
     
     signal usb_detect_ff1, usb_detect_ff2 : std_logic;
     
@@ -404,7 +463,6 @@ architecture Behavioral of brutzelkarte is
     signal read_ff1, read_ff2, read_last : std_logic;
     signal write_ff1, write_ff2, write_last : std_logic;
     signal ad_ff1, ad_ff2 : std_logic_vector(15 downto 0);
-    signal ad_out : std_logic_vector(15 downto 0);
     
     signal cart_addr : std_logic_vector(31 downto 0);
     signal cart_addr_latch : std_logic_vector(31 downto 0);
@@ -416,6 +474,7 @@ architecture Behavioral of brutzelkarte is
     signal sram_cs : std_logic;
     signal ci_cs : std_logic;
     signal ci_data : std_logic_vector(31 downto 0);
+    signal ci_out : std_logic_vector(15 downto 0);
     
     signal flash_cmd            : std_logic_vector(1 downto 0);
     signal flash_cmd_addr       : std_logic_vector(23 downto 0);
@@ -524,17 +583,64 @@ architecture Behavioral of brutzelkarte is
     signal efb_dat_i : std_logic_vector(7 downto 0);
     signal efb_dat_o : std_logic_vector(7 downto 0);
     
-    signal cart_control_reg : std_logic_vector(5 downto 0);
+    signal cart_control_reg : std_logic_vector(7 downto 0);
         -- [0] Flash select: 0 = BOOT, 1 = ROM
         -- [1] EEP enable: 0 = dis, 1 = en
         -- [2] EEP select: 0 = 4Kb, 1 = 16Kb
         -- [3] SRAM enable: 0 = dis, 1 = en
         -- [4] FLASHRAM enable: 0 = dis, 1 = en
         -- [5] MAPPING enable: 0 = dis, 1 = en
-    
+        -- [6] UART Enable: 0 = Disabled, 1 = Enabled
+        -- [7] UART Flowcontrol Enable: 0 = Disabled, 1 = Enabled
+        
     signal cart_rom_offset : std_logic_vector(5 downto 0);  -- position of the first ROM address in MiB
     signal cart_save_offset : std_logic_vector(7 downto 0); -- position of the first SRAM address in KiB
     signal cart_backup : std_logic_vector(31 downto 0); -- backup register for storing application data
+        
+    signal cart_uart_txd_reg : std_logic_vector(7 downto 0);
+    signal cart_uart_txd_dma_reg : std_logic_vector(31 downto 0);
+    signal cart_uart_txd_valid : std_logic;
+    signal cart_uart_txd_ack : std_logic;
+    
+    type uart_tx_state_t is (
+        s_uart_tx_idle,
+        s_uart_tx_wait,
+        s_uart_tx_read,
+        s_uart_tx_ack
+    );
+    signal uart_tx_state : uart_tx_state_t;
+    signal uart_tx_active : std_logic;
+    signal uart_txfifo_rden : std_logic;
+    signal uart_txfifo_wren : std_logic;
+    signal uart_txfifo_q : std_logic_vector(7 downto 0);
+    signal uart_txfifo_empty : std_logic;
+    signal uart_txfifo_full : std_logic;
+    signal uart_txfifo_almost_empty : std_logic;
+    signal uart_txfifo_free_count : std_logic_vector(10 downto 0);
+    
+    signal uart_tx_dma_active : std_logic;
+    signal uart_tx_dma_count : unsigned(1 downto 0);
+    
+    signal uart_rxfifo_rden       : std_logic;
+    signal uart_rxfifo_wren       : std_logic;
+    signal uart_rxfifo_data       : std_logic_vector(7 downto 0);
+    signal uart_rxfifo_q          : std_logic_vector(7 downto 0);
+    signal uart_rxfifo_empty      : std_logic;
+    signal uart_rxfifo_almost_full: std_logic;
+    signal uart_rxfifo_full       : std_logic;
+    signal uart_rxfifo_overflow   : std_logic;
+    signal uart_rxfifo_ready_count : std_logic_vector(10 downto 0);
+    
+    signal uart_rx_dma_buf        : std_logic_vector(15 downto 0);
+    
+    type uart_rxfifo_read_state_t is (
+        s_uart_rxfifo_read_idle,
+        s_uart_rxfifo_read_data0,
+        s_uart_rxfifo_read_data1,
+        s_uart_rxfifo_read_delay0
+    );
+    signal uart_rxfifo_read_state : uart_rxfifo_read_state_t;
+    signal uart_rts : std_logic;
     
     type cart_mapping_reg_type is array (natural range <>) of std_logic_vector(7 downto 0);
     signal cart_mapping_regs : cart_mapping_reg_type (0 to 31);
@@ -700,7 +806,6 @@ begin
         N64_WR_LAST_I    => write_last,
         N64_AD_I         => ad_ff2,
         N64_AD_O         => flashram_ad_out,
-        USE_FLASH_O      => open,
         
         MEM_CYC_O        => flashram_cyc,
         MEM_STB_O        => flashram_stb,
@@ -779,6 +884,8 @@ begin
         N64_CIC_RESET_I => cold_reset_ff2
     );
     
+    uart_rts <= UART_RTS_I when cart_control_reg(CART_CONTROL_UART_FC_ENABLE) = '1' else '0';
+    
     uart_access_inst : uart_access
     generic map (
         clock_frequency         => 79_800_000,
@@ -830,10 +937,52 @@ begin
         RTC_DATE_O              => uart_to_rtc_set_date,
         RTC_MONTH_O             => uart_to_rtc_set_month,
         RTC_YEAR_O              => uart_to_rtc_set_year,
+    
+        -- bypass mode
+        BYP_ENABLE_I            => cart_control_reg(CART_CONTROL_UART_ENABLE),
+        BYP_TX_VALID_I          => cart_uart_txd_valid,
+        BYP_TX_ACK_O            => cart_uart_txd_ack,
+        BYP_TX_DATA_I           => uart_txfifo_q,        
+        BYP_RX_DATA_O           => uart_rxfifo_data,
+        BYP_RX_VALID_O          => uart_rxfifo_wren,
+        
+        UART_TX_ACTIVE_O        => uart_tx_active,
         
         USB_DETECT_I            => usb_detect_ff2,
+        UART_RTS_I              => uart_rts,
         UART_TX_O               => UART_TX_O,
         UART_RX_I               => UART_RX_I
+    );
+    
+    uart_txfifo_inst : uart_fifo_level_tracking
+    port map (
+        CLK_I           => CLK_I,
+        RST_I           => not cart_control_reg(CART_CONTROL_UART_ENABLE),
+        RD_EN_I         => uart_txfifo_rden,
+        WR_EN_I         => uart_txfifo_wren,
+        DATA_I          => cart_uart_txd_reg,
+        Q_O             => uart_txfifo_q,
+        ALMOST_EMPTY_O  => uart_txfifo_almost_empty,
+        EMPTY_O         => uart_txfifo_empty,
+        ALMOST_FULL_O   => open,
+        FULL_O          => uart_txfifo_full,
+        FREE_COUNT_O    => uart_txfifo_free_count,
+        FULL_COUNT_O    => open
+    );
+    
+    uart_rxfifo_inst : uart_fifo_level_tracking
+    port map (
+        CLK_I           => CLK_I,
+        RST_I           => not cart_control_reg(CART_CONTROL_UART_ENABLE),
+        RD_EN_I         => uart_rxfifo_rden,
+        WR_EN_I         => uart_rxfifo_wren,
+        DATA_I          => uart_rxfifo_data,
+        Q_O             => uart_rxfifo_q,
+        EMPTY_O         => uart_rxfifo_empty,
+        ALMOST_FULL_O   => uart_rxfifo_almost_full,
+        FULL_O          => uart_rxfifo_full,
+        FREE_COUNT_O    => open,
+        FULL_COUNT_O    => uart_rxfifo_ready_count
     );
     
     efb0_inst : efb0
@@ -1007,9 +1156,19 @@ begin
                 sram_we <= '0';
                 sram_adr <= (others => '0');
                 cart_control_reg <= (others => '0');
+                cart_rom_offset <= (others => '0');
                 cart_save_offset <= (others => '0');
                 cart_backup <= (others => '0');
                 N64_AD_IO <= (others => 'Z');
+                
+                uart_tx_state <= s_uart_tx_idle;
+                uart_txfifo_wren <= '0';
+                cart_uart_txd_valid <= '0';
+                uart_tx_dma_active <= '0';
+                uart_rxfifo_rden <= '0';
+                uart_rx_dma_buf <= (others => '0');
+                uart_rxfifo_read_state <= s_uart_rxfifo_read_idle;
+                uart_rxfifo_overflow <= '0';
             else
                 if n64_reset = '1' then
                     read_last <= '0';
@@ -1086,25 +1245,20 @@ begin
                             end if;
                         end if;
                     end if;
-                
-                    if read_ff2 = '1' then
-                        N64_AD_IO <= ad_out;
-                    else
-                        N64_AD_IO <= (others => 'Z');
-                    end if;
-                end if;
-                
-                -- F-Zero X reads 0x05000508 - 0x0500050B and does not start if this is 0x00000000 
-                -- but it starts with 0xFFFFFFFF, so default is all '1'
-                ad_out <= (others => '1');
-                if rom_cs = '1' then
-                    ad_out <= rom_buffer_q;
-                end if;
-                if sram_cs = '1' then
-                    if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
-                        ad_out <= sram_ad_out;
-                    elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
-                        ad_out <= flashram_ad_out;
+                    
+                    N64_AD_IO <= (others => 'Z');
+                    if (read_ff2 = '1') then
+                        if ci_cs = '1' then
+                            N64_AD_IO <= ci_out;
+                        elsif sram_cs = '1' then
+                            if cart_control_reg(CART_CONTROL_SRAM_ENABLE) = '1' then
+                                N64_AD_IO <= sram_ad_out;
+                            elsif cart_control_reg(CART_CONTROL_FLASHRAM_ENABLE) ='1' then
+                                N64_AD_IO <= flashram_ad_out;
+                            end if;
+                        elsif rom_cs = '1' then
+                            N64_AD_IO <= rom_buffer_q;
+                        end if;
                     end if;
                 end if;
                 
@@ -1250,6 +1404,13 @@ begin
                     end if;
                 end if;
                 
+                uart_txfifo_wren <= '0';
+                uart_rxfifo_rden <= '0';
+                
+                if (uart_rxfifo_wren = '1') and (uart_rxfifo_full = '1') then
+                    uart_rxfifo_overflow <= '1';
+                end if;
+                
                 -- CI (Cart Interface)
                 if ci_cs = '1' then
                     if write_ff2 = '1' then
@@ -1272,9 +1433,26 @@ begin
                             
                         when CART_BACKUP_REG_W1 =>
                             cart_backup <= ci_data;
-                             
+                            
+                        when CART_UART_STATUS_REG_W1 =>
+                            -- write '1' to reset the flag
+                            if ci_data(CART_UART_STATUS_RXOF) = '1' then
+                                uart_rxfifo_overflow <= '0';
+                            end if;
+                            
+                        when CART_UART_DATA_REG_W1 =>
+                            cart_uart_txd_reg <= ci_data(cart_uart_txd_reg'range);
+                            uart_txfifo_wren <= '1';
+                        
                         when others => null;
                         end case;
+                        
+                        -- writes to UART DMA address space (1 KiB) trigger a write to the TX FIFO
+                        if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) and cart_addr(1) = '1' then
+                            cart_uart_txd_dma_reg <= ci_data;
+                            uart_tx_dma_count <= "11";
+                            uart_tx_dma_active <= '1';
+                        end if;
                         
                         -- writes to mapping address space (128 B)
                         if cart_addr(31 downto 7) = CART_MAPPING0_REG_ADDR(31 downto 7) and cart_addr(1) = '1' then
@@ -1283,35 +1461,62 @@ begin
                             mapping_index_tmp := to_integer(unsigned(cart_addr(6 downto 2)));
                             cart_mapping_regs(mapping_index_tmp) <= ci_data(current_mapping'range);
                         end if;
-                        
                     end if;
                     
-                    ad_out <= (others => '0');
+                    ci_out <= (others => '0');
                     case cart_addr is
                         
                     when CART_CONTROL_REG_W1 =>
-                        ad_out(cart_control_reg'range) <= cart_control_reg;
+                        ci_out(cart_control_reg'range) <= cart_control_reg;
                         
                     when CART_VERSION_REG_ADDR =>
-                        ad_out <= FPGA_VERSION(31 downto 16);
+                        ci_out <= FPGA_VERSION(31 downto 16);
                         
                     when CART_VERSION_REG_W1 =>
-                        ad_out <= FPGA_VERSION(15 downto 0);
+                        ci_out <= FPGA_VERSION(15 downto 0);
                         
                     when CART_ROMOFFSET_REG_W1 =>
-                        ad_out(cart_rom_offset'range) <= cart_rom_offset;
+                        ci_out(cart_rom_offset'range) <= cart_rom_offset;
                         
                     when CART_SAVEOFFSET_REG_W1 =>
-                        ad_out(cart_save_offset'range) <= cart_save_offset;
+                        ci_out(cart_save_offset'range) <= cart_save_offset;
                         
                     when CART_BACKUP_REG_ADDR =>
-                        ad_out <= cart_backup(31 downto 16);
+                        ci_out <= cart_backup(31 downto 16);
                         
                     when CART_BACKUP_REG_W1 =>
-                        ad_out <= cart_backup(15 downto 0);
+                        ci_out <= cart_backup(15 downto 0);
+                    
+                    when CART_UART_STATUS_REG_W1 =>
+                        ci_out(CART_UART_STATUS_TXNF) <= not uart_txfifo_full;
+                        ci_out(CART_UART_STATUS_TXE) <= uart_txfifo_empty;
+                        ci_out(CART_UART_STATUS_TXHE) <= uart_txfifo_almost_empty;
+                        ci_out(CART_UART_STATUS_TXACT) <= uart_tx_active;
                         
+                        ci_out(CART_UART_STATUS_RXNE) <= not uart_rxfifo_empty;
+                        ci_out(CART_UART_STATUS_RXF) <= uart_rxfifo_full;
+                        ci_out(CART_UART_STATUS_RXHF) <= uart_rxfifo_almost_full;
+                        ci_out(CART_UART_STATUS_RXOF) <= uart_rxfifo_overflow;
+                        
+                    when CART_UART_TX_FREE_REG_W1 =>
+                        ci_out(uart_txfifo_free_count'range) <= uart_txfifo_free_count;
+                            
+                    when CART_UART_RX_READY_REG_W1 =>
+                        ci_out(uart_rxfifo_ready_count'range) <= uart_rxfifo_ready_count;
+                            
+                    when CART_UART_DATA_REG_W1 =>
+                        -- trigger fifo read
+                        if read_ff2 = '1' and read_last = '0' then
+                            uart_rxfifo_rden <= '1';
+                        end if;
+                        ci_out(7 downto 0) <= uart_rxfifo_q;
+                            
                     when others => null;
                     end case;
+                    
+                    if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) then
+                        ci_out <= uart_rx_dma_buf;
+                    end if;
                     
                 end if;
                 
@@ -1319,6 +1524,76 @@ begin
                 if nmi_ff2 = '0' then
                     cart_control_reg(CART_CONTROL_FLASH_SEL) <= '0';
                 end if;
+                
+                if cart_control_reg(CART_CONTROL_UART_ENABLE) = '0' then
+                    uart_tx_state <= s_uart_tx_idle;
+                    cart_uart_txd_valid <= '0';
+                    uart_tx_dma_active <= '0';
+                    uart_rxfifo_overflow <= '0';
+                end if;
+                
+                uart_txfifo_rden <= '0';
+                case uart_tx_state is
+                when s_uart_tx_idle =>
+                    if cart_control_reg(CART_CONTROL_UART_ENABLE) = '1' then
+                        uart_tx_state <= s_uart_tx_wait;
+                    end if;
+                    
+                when s_uart_tx_wait =>
+                    cart_uart_txd_valid <= '0';
+                    if uart_txfifo_empty = '0' then
+                        uart_txfifo_rden <= '1';
+                        uart_tx_state <= s_uart_tx_read;
+                    end if;
+                    
+                when s_uart_tx_read =>
+                    cart_uart_txd_valid <= '1';
+                    uart_tx_state <= s_uart_tx_ack;
+                
+                when s_uart_tx_ack =>
+                    if cart_uart_txd_ack = '1' then
+                        cart_uart_txd_valid <= '0';
+                        uart_tx_state <= s_uart_tx_wait;
+                    end if;
+                
+                when others =>
+                    uart_tx_state <= s_uart_tx_wait;
+                end case;
+                
+                if uart_tx_dma_active = '1' then
+                    cart_uart_txd_reg <= cart_uart_txd_dma_reg(31 downto 24);
+                    uart_txfifo_wren <= '1';
+                    cart_uart_txd_dma_reg <= cart_uart_txd_dma_reg(23 downto 0) & x"00";
+                    uart_tx_dma_count <= uart_tx_dma_count - 1;
+                    if uart_tx_dma_count = 0 then
+                    	uart_tx_dma_active <= '0';
+                    end if;
+                end if;
+                
+                case uart_rxfifo_read_state is
+                when s_uart_rxfifo_read_idle =>
+                    if cart_addr(31 downto 10) = CART_UART_DMA_ADDR(31 downto 10) then
+                        -- read to UART DMA address space (1 KiB) trigger a read from the RX FIFO
+                        if read_ff2 = '1' and read_last = '0' then
+                            uart_rxfifo_read_state <= s_uart_rxfifo_read_data0;
+                            uart_rxfifo_rden <= '1';
+                        end if;
+                    end if;
+                    
+                when s_uart_rxfifo_read_data0 =>
+                    uart_rxfifo_rden <= '1';
+                    uart_rxfifo_read_state <= s_uart_rxfifo_read_data1;
+                    
+                when s_uart_rxfifo_read_data1=>
+                    uart_rx_dma_buf(15 downto 8) <= uart_rxfifo_q;
+                    uart_rxfifo_read_state <= s_uart_rxfifo_read_delay0;
+                
+                when s_uart_rxfifo_read_delay0 =>
+                    uart_rx_dma_buf(7 downto 0) <= uart_rxfifo_q;
+                    uart_rxfifo_read_state <= s_uart_rxfifo_read_idle;
+                
+                when others => null;
+                end case;
             end if;
         end if;
     end process;

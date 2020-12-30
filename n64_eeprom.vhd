@@ -179,13 +179,19 @@ begin
                 sclk_ff1 <= N64_S_CLK_I;
                 sclk_ff2 <= sclk_ff1;
                 sclk_last <= sclk_ff2;
-                sdat_ff1 <= N64_S_DAT_IO;
+                
+                -- the following line does not work in the simulation
+                -- because when N64_S_DAT_IO is driven 'H' from outside the
+                -- signal is not recognized as '1' later in the code
+                -- (this line would work in real hardware)
+                -- sdat_ff1 <= N64_S_DAT_IO;
+                
+                -- workaround working for sim and synth:
                 if N64_S_DAT_IO = '0' then
                     sdat_ff1 <= '0';
                 else
                     sdat_ff1 <= '1';
                 end if;
-                -- sdat_ff1 <= N64_S_DAT_IO;
                 sdat_ff2 <= sdat_ff1;
                 
                 -- receive logic

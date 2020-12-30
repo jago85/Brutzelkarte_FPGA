@@ -41,6 +41,7 @@ port (
     
     -- USB-UART
     USB_DETECT_I        : in std_logic;
+    UART_RTS_I          : in std_logic;
     UART_RX_I           : in std_logic;
     UART_TX_O           : out std_logic;
     
@@ -52,7 +53,7 @@ port (
     JP1_I               : in std_logic;
     
     -- Testpoints
-    TP1_O               : out std_logic;
+    -- TP1_O               : out std_logic;
     TP2_O               : out std_logic;
     TP3_O               : out std_logic;
     TP4_O               : out std_logic;
@@ -122,6 +123,7 @@ architecture Behavioral of top is
         
         -- USB-UART
         USB_DETECT_I        : in std_logic;
+        UART_RTS_I          : in std_logic;
         UART_RX_I           : in std_logic;
         UART_TX_O           : out std_logic;
         
@@ -209,6 +211,7 @@ begin
 
         -- USB-UART
         USB_DETECT_I        => USB_DETECT_I,
+        UART_RTS_I          => UART_RTS_I,
         UART_RX_I           => UART_RX_I,
         UART_TX_O           => UART_TX_O,
 
@@ -218,7 +221,7 @@ begin
 
 
         -- Testpoints
-        TP1_O               => TP1_O,
+        -- TP1_O               => TP1_O,
         TP2_O               => TP2_O,
         TP3_O               => TP3_O,
         TP4_O               => TP4_O,
