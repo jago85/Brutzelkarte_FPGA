@@ -49,7 +49,7 @@ architecture Behavioral of s25fl256s_x2 is
     constant FLASH_CMD_FASTREAD_QUADIO          : std_logic_vector(7 downto 0) := x"EC";
     constant FLASH_CMD_WREN                     : std_logic_vector(7 downto 0) := x"06";
     constant FLASH_CMD_ERASE                    : std_logic_vector(7 downto 0) := x"DC";
-    constant FLASH_CMD_PAGE_PROGRAM             : std_logic_vector(7 downto 0) := x"12";
+    constant FLASH_CMD_QUAD_PAGE_PROGRAM        : std_logic_vector(7 downto 0) := x"34";
     constant FLASH_CMD_READ_STATUS_REGISTER1    : std_logic_vector(7 downto 0) := x"05";
     constant FLASH_CMD_WRITE_STATUS_REGISTER1   : std_logic_vector(7 downto 0) := x"01";
     
@@ -441,7 +441,7 @@ begin
                     spi_shift_out <= FLASH_CMD_ERASE;
                     state <= s_erase_cmd;
                 else
-                    spi_shift_out <= FLASH_CMD_PAGE_PROGRAM;
+                    spi_shift_out <= FLASH_CMD_QUAD_PAGE_PROGRAM;
                     state <= s_write_cmd;
                 end if;
                 
@@ -488,6 +488,7 @@ begin
                     end if;
                     if shift_counter(39) = '1' then
                         state <= s_write_data;
+                        spi_quad_en <= '1';
                         spi_shift_out <= WRITE_FIFO_DATA_I;
                         
                         -- make the next data available
@@ -499,7 +500,7 @@ begin
                 
             when s_write_data =>
                 if spi_sck = '1' then
-                    if shift_counter(7) = '1' then
+                    if shift_counter(1) = '1' then
                         if fifo_empty = '0' then
                             spi_shift_out <= WRITE_FIFO_DATA_I;
                             
@@ -510,6 +511,7 @@ begin
                         else
                             CSN_O <= "11";
                             spi_clock_en <= '0';
+                            spi_quad_en <= '0';
                             state <= s_write_end;
                             shift_counter <= "00000100000000000000000000000000000000000";
                         end if;
