@@ -221,7 +221,7 @@ begin
 
 
         -- Testpoints
-        -- TP1_O               => TP1_O,
+        TP1_O               => open,
         TP2_O               => TP2_O,
         TP3_O               => TP3_O,
         TP4_O               => TP4_O,

@@ -114,7 +114,7 @@ begin
         end if;
     end process;
     
-    comb_proc : process (state, CYC_I, STB_I, counter, WE_I, addr_reg, ADR_I, data_write_reg)
+    comb_proc : process (state, CYC_I, STB_I, ack, counter, WE_I, addr_reg, ADR_I, data_write_reg)
     begin
         ram_cs <= '0';
         ram_oe <= '1';

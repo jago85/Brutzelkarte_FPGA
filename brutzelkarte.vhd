@@ -978,6 +978,7 @@ begin
         WR_EN_I         => uart_rxfifo_wren,
         DATA_I          => uart_rxfifo_data,
         Q_O             => uart_rxfifo_q,
+        ALMOST_EMPTY_O  => open,
         EMPTY_O         => uart_rxfifo_empty,
         ALMOST_FULL_O   => uart_rxfifo_almost_full,
         FULL_O          => uart_rxfifo_full,
