@@ -1281,7 +1281,7 @@ begin
                                 -- map the high bits of the address 
                                 flash_addr_tmp(23 downto 19) := current_mapping(4 downto 0);
                             else
-                                flash_addr_tmp := std_logic_vector(unsigned(cart_addr_latch(25 downto 2)) + unsigned(cart_rom_offset & "000000000000000000"));
+                                flash_addr_tmp := std_logic_vector(unsigned(cart_addr_latch(25 downto 2)) + unsigned(std_logic_vector'(cart_rom_offset & "000000000000000000")));
                             end if;
                         end if;
                         flash_last_addr <= flash_addr_tmp;
