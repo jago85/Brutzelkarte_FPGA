@@ -272,6 +272,7 @@ architecture Behavioral of brutzelkarte is
         FLASH_DATA_ROM_I        : in std_logic_vector (31 downto 0);
         FLASH_DATA_VALID_BOOT_I : in std_logic;
         FLASH_DATA_VALID_ROM_I  : in std_logic;
+        FLASH_ADDR_WIDTH_I      : in std_logic_vector(7 downto 0);
         
         WRITE_FIFO_EMPTY_O      : out std_logic;
         WRITE_FIFO_DATA_O       : out std_logic_vector(7 downto 0);
@@ -285,6 +286,7 @@ architecture Behavioral of brutzelkarte is
         MEM_ADR_O               : out std_logic_vector(16 downto 0);    
         MEM_DAT_O               : out std_logic_vector(15 downto 0);    
         MEM_DAT_I               : in std_logic_vector(15 downto 0);
+        MEM_ADDR_WIDTH_I        : in std_logic_vector(7 downto 0);
     
         EFB_CYC_O               : out std_logic;
         EFB_STB_O               : out std_logic;
@@ -906,6 +908,7 @@ begin
         FLASH_DATA_ROM_I        => flash_data_rom,
         FLASH_DATA_VALID_BOOT_I => flash_data_valid_boot,
         FLASH_DATA_VALID_ROM_I  => flash_data_valid_rom,
+        FLASH_ADDR_WIDTH_I      => x"1A",
 
         WRITE_FIFO_EMPTY_O      => flash_write_fifo_empty,
         WRITE_FIFO_DATA_O       => flash_write_fifo_data,
@@ -919,6 +922,7 @@ begin
         MEM_ADR_O               => uart_adr,
         MEM_DAT_O               => uart_dat_to_ram,
         MEM_DAT_I               => mem_dat_from_ram,
+        MEM_ADDR_WIDTH_I        => x"12",
         
         EFB_CYC_O               => efb_cyc,
         EFB_STB_O               => efb_stb,

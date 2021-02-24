@@ -23,6 +23,7 @@ port (
     FLASH_DATA_ROM_I        : in std_logic_vector (31 downto 0);
     FLASH_DATA_VALID_BOOT_I : in std_logic;
     FLASH_DATA_VALID_ROM_I  : in std_logic;
+    FLASH_ADDR_WIDTH_I      : in std_logic_vector(7 downto 0);
     
     WRITE_FIFO_EMPTY_O      : out std_logic;
     WRITE_FIFO_DATA_O       : out std_logic_vector(7 downto 0);
@@ -36,6 +37,7 @@ port (
     MEM_ADR_O               : out std_logic_vector(16 downto 0);    
     MEM_DAT_O               : out std_logic_vector(15 downto 0);    
     MEM_DAT_I               : in std_logic_vector(15 downto 0);
+    MEM_ADDR_WIDTH_I        : in std_logic_vector(7 downto 0);
     
     EFB_CYC_O               : out std_logic;
     EFB_STB_O               : out std_logic;
@@ -151,6 +153,9 @@ architecture Behavioral of uart_access is
     constant UART_CMD_EFB_READ       : std_logic_vector(7 downto 0) := x"08";
     constant UART_CMD_READ_VERSION   : std_logic_vector(7 downto 0) := x"09";
     constant UART_CMD_SET_RTC        : std_logic_vector(7 downto 0) := x"0A";
+    constant UART_CMD_FLASH_SEL      : std_logic_vector(7 downto 0) := x"0B";
+    constant UART_CMD_GET_FLASH_ADDR_WIDTH : std_logic_vector(7 downto 0) := x"0C";
+    constant UART_CMD_GET_SRAM_ADDR_WIDTH  : std_logic_vector(7 downto 0) := x"0D";
     
     type uart_com_state_t is (
         s_wait_start,
@@ -179,11 +184,17 @@ architecture Behavioral of uart_access is
         
         s_set_rtc,
         
+        s_set_flash_sel,
+        
+        s_send_flash_awidth,
+        s_send_sram_awidth,
+        
         s_byp_mode,
         
         s_invalid
     );
     
+    signal flash_sel : std_logic; -- '0' = ROM, '1' = BOOT
     signal flash_cmd_rdy : std_logic;
     signal flash_data : std_logic_vector (31 downto 0);
     signal flash_data_valid : std_logic;
@@ -210,7 +221,7 @@ architecture Behavioral of uart_access is
     signal uart_tx_data : std_logic_vector(7 downto 0);
     
     signal uart_com_state : uart_com_state_t;
-    signal uart_com_addr : std_logic_vector(24 downto 0);
+    signal uart_com_addr : std_logic_vector(23 downto 0);
     signal uart_com_counter : unsigned(7 downto 0);
     signal uart_packet_counter : unsigned(3 downto 0);
     signal uart_packet_ack : std_logic;
@@ -321,11 +332,11 @@ begin
         end if;
     end process;
     
-    with uart_com_addr(24) select flash_data <=
+    with flash_sel select flash_data <=
         FLASH_DATA_ROM_I when '0',
         FLASH_DATA_BOOT_I when others;
     
-    with uart_com_addr(24) select flash_data_valid <=
+    with flash_sel select flash_data_valid <=
         FLASH_DATA_VALID_ROM_I when '0',
         FLASH_DATA_VALID_BOOT_I when others;
         
@@ -431,7 +442,7 @@ begin
                         
                         FLASH_CMD_ADDR_O <= uart_com_addr(FLASH_CMD_ADDR_O'range);
                         FLASH_CMD_O <= FLASH_CMD_ERASE;
-                        if uart_com_addr(24) = '1' then
+                        if flash_sel = '1' then
                             FLASH_CMD_EN_BOOT_O <= '1';
                         else
                             FLASH_CMD_EN_ROM_O <= '1';
@@ -443,7 +454,7 @@ begin
                         
                         FLASH_CMD_ADDR_O <= uart_com_addr(FLASH_CMD_ADDR_O'range);
                         FLASH_CMD_O <= FLASH_CMD_WRITE;
-                        if uart_com_addr(24) = '1' then
+                        if flash_sel = '1' then
                             FLASH_CMD_EN_BOOT_O <= '1';
                         else
                             FLASH_CMD_EN_ROM_O <= '1';
@@ -456,7 +467,7 @@ begin
                         
                         FLASH_CMD_ADDR_O <= uart_com_addr(FLASH_CMD_ADDR_O'range);
                         FLASH_CMD_O <= FLASH_CMD_READ;
-                        if uart_com_addr(24) = '1' then
+                        if flash_sel = '1' then
                             FLASH_CMD_EN_BOOT_O <= '1';
                         else
                             FLASH_CMD_EN_ROM_O <= '1';
@@ -483,6 +494,17 @@ begin
                     when UART_CMD_SET_RTC =>
                         uart_com_state <= s_set_rtc;
                         
+                    when UART_CMD_FLASH_SEL =>
+                        uart_com_state <= s_set_flash_sel;
+                        
+                    when UART_CMD_GET_FLASH_ADDR_WIDTH =>
+                        cmd_fifo_rden <= '0';
+                        uart_com_state <= s_send_flash_awidth;
+                        
+                    when UART_CMD_GET_SRAM_ADDR_WIDTH =>
+                        cmd_fifo_rden <= '0';
+                        uart_com_state <= s_send_sram_awidth;
+                        
                     when others =>
                         uart_com_state <= s_invalid;
                         delay_counter <= (others => '0');
@@ -495,7 +517,7 @@ begin
                 cmd_fifo_rden <= '1';
                 if cmd_fifo_data_valid(0) = '1' then
                     case uart_com_counter is
-                    when x"00" => uart_com_addr(24) <= cmd_fifo_q(0);
+                    when x"00" => null;
                     when x"01" => uart_com_addr(23 downto 16) <= cmd_fifo_q;
                     when x"02" => uart_com_addr(15 downto 8) <= cmd_fifo_q;
                     when x"03" => uart_com_addr(7 downto 0) <= cmd_fifo_q;
@@ -572,7 +594,7 @@ begin
                             uart_com_state <= s_wait_start;
                         else
                             uart_com_state <= s_read_flash;
-                            if uart_com_addr(24) = '1' then
+                            if flash_sel = '1' then
                                 FLASH_CMD_EN_BOOT_O <= '1';
                             else
                                 FLASH_CMD_EN_ROM_O <= '1';
@@ -771,6 +793,33 @@ begin
                     when others => null;
                     end case;
                     uart_com_counter <= uart_com_counter + 1;
+                end if;
+                
+            when s_set_flash_sel =>
+                if cmd_fifo_data_valid(0) = '1' then
+                    flash_sel <= cmd_fifo_q(0);
+                    cmd_fifo_rden <= '0';
+                    uart_com_state <= s_wait_start;
+                end if;
+                
+            when s_send_flash_awidth =>
+                uart_tx_enable <= '1';
+                uart_tx_data <= FLASH_ADDR_WIDTH_I;
+                uart_tx_valid <= '1';
+                if uart_tx_ack = '1' then
+                    uart_com_state <= s_wait_start;
+                    uart_tx_enable <= '0';
+                    uart_tx_valid <= '0';
+                end if;
+            
+            when s_send_sram_awidth =>
+                uart_tx_enable <= '1';
+                uart_tx_data <= MEM_ADDR_WIDTH_I;
+                uart_tx_valid <= '1';
+                if uart_tx_ack = '1' then
+                    uart_com_state <= s_wait_start;
+                    uart_tx_enable <= '0';
+                    uart_tx_valid <= '0';
                 end if;
                 
             when s_byp_mode =>
