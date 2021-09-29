@@ -21,6 +21,9 @@ entity s25fl256s_x2 is
         WRITE_FIFO_DATA_I   : in std_logic_vector(7 downto 0);
         WRITE_FIFO_RDEN_O   : out std_logic;
         
+        -- Capacity detection
+        ADDR_WIDTH_O        : out std_logic_vector(7 downto 0);
+        
         -- QSPI
         CSN_O               : out std_logic_vector (1 downto 0);
         SCK_O               : out std_logic;
@@ -151,6 +154,18 @@ begin
     
     chip_sel <= not cmd_addr(23) & cmd_addr(23);
     
+    ADDR_WIDTH_PROC: process (capacity_id1, capacity_id2, manufacturer_id1, manufacturer_id2)
+    begin
+        ADDR_WIDTH_O <= x"00";
+        if manufacturer_id1 = x"01" and capacity_id1 = x"19" then
+            if manufacturer_id2 = x"01" and capacity_id2 = x"19" then
+                ADDR_WIDTH_O <= x"1A";
+            else
+                ADDR_WIDTH_O <= x"19";
+            end if;
+        end if;
+    end process;
+    
     process (CLK_I, RESET_I)
     begin
         if RESET_I = '1' then
@@ -218,7 +233,7 @@ begin
                         end if;
                     end if;
                     
-                    if shift_counter(40) = '1' then
+                    if shift_counter(32) = '1' then
                         if cmd_addr(23) = '0' then
                             capacity_id1 <= spi_shift_in;
                         else

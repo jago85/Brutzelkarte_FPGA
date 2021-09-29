@@ -110,6 +110,9 @@ architecture Behavioral of brutzelkarte is
         WRITE_FIFO_DATA_I   : in std_logic_vector(7 downto 0);
         WRITE_FIFO_RDEN_O   : out std_logic;
         
+        -- Capacity detection
+        ADDR_WIDTH_O        : out std_logic_vector(7 downto 0);
+        
         -- QSPI
         CSN_O               : out std_logic_vector (1 downto 0);
         SCK_O               : out std_logic;
@@ -492,6 +495,7 @@ architecture Behavioral of brutzelkarte is
     signal flash_data_valid_boot: std_logic;
     signal flash_data_valid_rom : std_logic;
     signal flash_read_continous : std_logic;
+    signal flash_addr_width     : std_logic_vector(7 downto 0);
     
     type rom_state_t is (
         s_idle,
@@ -729,6 +733,9 @@ begin
         WRITE_FIFO_DATA_I  => flash_write_fifo_data,
         WRITE_FIFO_RDEN_O  => flash_write_fifo_rden_rom,
         
+        -- Capacity detection
+        ADDR_WIDTH_O       => flash_addr_width,
+        
         -- QSPI
         CSN_O               => ROM_CSN_O,
         SCK_O               => ROM_SCK_O,
@@ -908,7 +915,7 @@ begin
         FLASH_DATA_ROM_I        => flash_data_rom,
         FLASH_DATA_VALID_BOOT_I => flash_data_valid_boot,
         FLASH_DATA_VALID_ROM_I  => flash_data_valid_rom,
-        FLASH_ADDR_WIDTH_I      => x"1A",
+        FLASH_ADDR_WIDTH_I      => flash_addr_width,
 
         WRITE_FIFO_EMPTY_O      => flash_write_fifo_empty,
         WRITE_FIFO_DATA_O       => flash_write_fifo_data,
